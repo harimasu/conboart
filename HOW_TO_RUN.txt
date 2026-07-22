@@ -1,0 +1,42 @@
+CONBOART - How to run in terminal
+==================================
+
+EASIEST WAY
+-----------
+From the project root, run:
+
+    run.bat
+
+This will:
+  - create/activate the .venv virtual environment (already present)
+  - install backend dependencies
+  - copy backend/.env.example to backend/.env if missing
+  - start the server and open http://127.0.0.1:8000/ in your browser
+
+
+MANUAL STEPS (PowerShell)
+--------------------------
+1. Activate the virtual environment:
+     .venv\Scripts\activate
+
+2. Install dependencies:
+     pip install -r backend\requirements.txt
+
+3. Make sure the env file exists (leave MESHY_API_KEY blank to run in
+   MOCK mode, no Meshy account needed):
+     copy backend\.env.example backend\.env
+
+4. Run the server:
+     uvicorn backend.main:app --reload
+
+5. Open in your browser:
+     http://127.0.0.1:8000/
+
+
+NOTES
+-----
+- MOCK mode: with no MESHY_API_KEY set (or MESHY_MOCK=1), the backend
+  fabricates a sample model instead of calling Meshy, so you can test
+  the whole pipeline offline. Add a real key and set MESHY_MOCK=0 to
+  use the actual Meshy service.
+- Requires Python 3.10+.

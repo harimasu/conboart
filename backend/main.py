@@ -20,10 +20,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-import convert
-import mesh_utils
-import meshy_client
-from config import MAX_UPLOAD_BYTES, SESSION_TTL_MIN
+from . import convert, mesh_utils, meshy_client
+from .config import MAX_UPLOAD_BYTES, SESSION_TTL_MIN
 
 app = FastAPI(title="CONBOART", version="0.1.0")
 app.add_middleware(
@@ -67,9 +65,12 @@ async def generate(payload: dict = Body(...)):
         raise HTTPException(413, "image exceeds the size cap")
 
     # Generate (native size) -> cleanup -> printability
-    task_id = await meshy_client.submit_image(image_bytes, payload.get("mime", "image/png"))
-    task = await meshy_client.poll_until_done(task_id)
-    glb = await meshy_client.download_model(task)
+    try:
+        task_id = await meshy_client.submit_image(image_bytes, payload.get("mime", "image/png"))
+        task = await meshy_client.poll_until_done(task_id)
+        glb = await meshy_client.download_model(task)
+    except meshy_client.MeshyError as e:
+        raise HTTPException(502, f"generation failed: {e}")
 
     mesh = mesh_utils.load(glb, "glb")
     mesh_utils.cleanup(mesh)

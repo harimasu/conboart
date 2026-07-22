@@ -17,7 +17,7 @@ import time
 
 import httpx
 
-from config import (
+from .config import (
     MESHY_API_KEY,
     MESHY_BASE_URL,
     MESHY_MOCK,

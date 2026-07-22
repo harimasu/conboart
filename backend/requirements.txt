@@ -4,6 +4,8 @@ python-multipart>=0.0.9
 httpx>=0.27
 trimesh>=4.4
 numpy>=1.26
+scipy>=1.11  # trimesh needs this for graph ops (fix_normals, split, body_count)
+pycollada>=0.9  # trimesh needs this to export .dae (Collada)
 python-dotenv>=1.0
 # Optional — Tier 3 CAD export (STEP/IGES). Conda-friendly; not required.
 # pythonocc-core

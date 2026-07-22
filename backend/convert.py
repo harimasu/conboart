@@ -10,14 +10,19 @@ Tiers (see docs/2d-to-3d-converter.md):
 """
 from __future__ import annotations
 
-from config import CAD_FORMATS, MESH_FORMATS
+from .config import CAD_FORMATS, MESH_FORMATS
 
 
 def to_bytes(mesh, fmt: str) -> bytes:
     fmt = fmt.lower().lstrip(".")
 
+    if fmt == "gltf":
+        # Without embed_buffers, trimesh splits gltf into a {json, .bin} dict.
+        # Embed so the endpoint can serve a single self-contained file.
+        return next(iter(mesh.export(file_type="gltf", embed_buffers=True).values()))
+
     if fmt in MESH_FORMATS:
-        # trimesh uses "gltf"/"glb" and "dae" (collada) file types directly
+        # trimesh uses "glb" and "dae" (collada) file types directly
         return mesh.export(file_type=fmt)
 
     if fmt in CAD_FORMATS:

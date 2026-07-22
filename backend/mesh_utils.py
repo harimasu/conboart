@@ -8,7 +8,7 @@ Design notes:
 """
 from __future__ import annotations
 
-from config import SCALE_PRESETS_MM
+from .config import SCALE_PRESETS_MM
 
 
 def load(data: bytes, file_type: str = "glb"):
@@ -46,7 +46,7 @@ def printability(mesh) -> dict:
     winding = bool(mesh.is_winding_consistent)
     bodies = mesh.split(only_watertight=False)
     single_body = len(bodies) <= 1
-    positive_volume = bool(mesh.is_volume) and mesh.volume > 0
+    positive_volume = bool(mesh.is_volume) and bool(mesh.volume > 0)
 
     checks = {
         "watertight": watertight,

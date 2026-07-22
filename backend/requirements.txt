@@ -1,0 +1,9 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+httpx>=0.27
+trimesh>=4.4
+numpy>=1.26
+python-dotenv>=1.0
+# Optional — Tier 3 CAD export (STEP/IGES). Conda-friendly; not required.
+# pythonocc-core

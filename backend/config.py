@@ -19,6 +19,23 @@ MESHY_BASE_URL = os.getenv("MESHY_BASE_URL", "https://api.meshy.ai")
 # instead of calling Meshy — handy for local development before subscribing.
 MESHY_MOCK = os.getenv("MESHY_MOCK", "").lower() in {"1", "true", "yes"} or not MESHY_API_KEY
 
+# --- Hugging Face (free, open-source generation) -----------------------------
+# TRELLIS is MIT-licensed and its public demo Space can be called as an API,
+# which is enough to test real generation without paying for Meshy. A free
+# token from https://huggingface.co/settings/tokens raises the daily quota;
+# without one you share a much smaller anonymous pool.
+HF_SPACE = os.getenv("HF_SPACE", "trellis-community/TRELLIS")
+HF_TOKEN = os.getenv("HF_TOKEN", "")
+# Optional: pin the endpoint instead of discovering it (see hf_probe.py).
+HF_API_NAME = os.getenv("HF_API_NAME", "")
+
+# --- Which generator to use -------------------------------------------------
+#   mock  — built-in sample sphere; offline, instant, costs nothing
+#   hf    — free open-source TRELLIS via a Hugging Face Space
+#   meshy — the paid Meshy API
+# Defaults preserve the old behaviour: mock unless a Meshy key is configured.
+GENERATOR = os.getenv("GENERATOR", "").strip().lower() or ("mock" if MESHY_MOCK else "meshy")
+
 # --- Guard rails ------------------------------------------------------------
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
 MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024

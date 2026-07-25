@@ -24,7 +24,11 @@ conboart/
 ├── backend/
 │   ├── main.py           # FastAPI app + routes; serves the frontend
 │   ├── config.py         # Env config + limits + scale presets
-│   ├── meshy_client.py   # Meshy image-to-3D wrapper (has a MOCK mode)
+│   ├── generator.py      # Picks the backend: mock / hf / meshy
+│   ├── meshy_client.py   # Meshy image-to-3D wrapper (paid)
+│   ├── hf_client.py      # Hugging Face TRELLIS wrapper (free)
+│   ├── hf_probe.py       # Inspect / smoke-test a Hugging Face Space
+│   ├── errors.py         # Shared GenerationError
 │   ├── mesh_utils.py     # Trimesh: cleanup, printability, scale, info
 │   ├── convert.py        # Format export (mesh / SketchUp / CAD tiers)
 │   ├── requirements.txt
@@ -53,8 +57,8 @@ pip install -r backend/requirements.txt
 
 # 3. Configure environment
 cp backend/.env.example backend/.env
-#   Leave MESHY_API_KEY blank to run in MOCK mode (no account needed).
-#   When ready, add your Meshy key and set MESHY_MOCK=0.
+#   Ships as GENERATOR=mock — runs offline, no account needed.
+#   See "Choosing a generator" below for free and paid real generation.
 
 # 4. Run
 uvicorn backend.main:app --reload
@@ -63,12 +67,38 @@ uvicorn backend.main:app --reload
 #    http://127.0.0.1:8000/
 ```
 
-### MOCK mode
+### Choosing a generator
 
-With no `MESHY_API_KEY` set (or `MESHY_MOCK=1`), the backend fabricates a sample
-model instead of calling Meshy, so you can build and test the whole pipeline
-offline before subscribing. Swap in a real key and set `MESHY_MOCK=0` to use the
-actual service.
+Set `GENERATOR` in `backend/.env` to pick what turns your image into a model:
+
+| `GENERATOR` | Cost | What you get |
+|-------------|------|--------------|
+| `mock` | free | A sample sphere. Ignores your image — for building the UI and testing the pipeline offline. |
+| `hf` | free | Real results from your real image, via open-source [TRELLIS](https://huggingface.co/spaces/trellis-community/TRELLIS) on a public Hugging Face Space. Limited daily quota. |
+| `meshy` | paid | The Meshy API. |
+
+Leaving `GENERATOR` unset keeps the old behaviour: `mock` unless `MESHY_API_KEY`
+is set.
+
+#### Free generation with `hf`
+
+TRELLIS is MIT-licensed, so it's usable for academic and commercial work. Add a
+free token from <https://huggingface.co/settings/tokens> (no credit card) to
+`.env` as `HF_TOKEN` for a larger daily quota than the shared anonymous pool.
+
+Public Spaces are **demos, not production APIs** — they queue, they're rate
+limited, and they go offline. Good for testing and demos; not something to
+build a deployed product on.
+
+Each Space declares its own endpoint names, so `hf_client` discovers the right
+one at runtime. To see what a Space offers, or to smoke-test a real generation:
+
+```bash
+python -m backend.hf_probe              # list endpoints
+python -m backend.hf_probe photo.jpg    # generate from an image
+```
+
+If discovery picks the wrong endpoint, pin it with `HF_API_NAME` in `.env`.
 
 > The frontend prototype currently runs a **simulated** generation flow so it
 > works standalone. Wiring its buttons to the `/api/*` endpoints below is the
@@ -78,6 +108,7 @@ actual service.
 
 | Method | Path | Purpose |
 |--------|------|---------|
+| GET  | `/api/health` | Liveness + which generator is active |
 | POST | `/api/generate` | `{ image_base64, mime }` → generate, clean up, check; returns `job_id` |
 | GET  | `/api/status/{job_id}` | Generation status |
 | GET  | `/api/report/{job_id}` | Printability report + model info |

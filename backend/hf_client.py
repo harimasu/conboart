@@ -30,11 +30,26 @@ from .config import HF_API_NAME, HF_SPACE, HF_TOKEN
 from .errors import GenerationError
 
 # Endpoint names worth trying first, most specific to least, when the Space
-# doesn't tell us plainly which one does image -> 3D.
-_GENERATE_CANDIDATES = ("/image_to_3d", "/generate", "/process", "/run", "/predict")
+# doesn't tell us plainly which one does image -> 3D. Includes the name used
+# by trellis-community/TRELLIS itself, which does the whole pipeline in one
+# call rather than needing a separate extract step.
+_GENERATE_CANDIDATES = (
+    "/generate_and_extract_glb",
+    "/image_to_3d",
+    "/generate",
+    "/process",
+    "/run",
+    "/predict",
+)
 
-# Endpoints that turn a TRELLIS state into a downloadable mesh.
+# Endpoints that turn a TRELLIS state into a downloadable mesh, for Spaces
+# that split generation from extraction into two calls.
 _EXTRACT_CANDIDATES = ("/extract_glb", "/extract_mesh", "/download_glb")
+
+# Endpoint name fragments that take an image but aren't the real generator —
+# skip these when falling back to "any endpoint with an image parameter", or
+# a preprocessing step gets called instead of the actual pipeline.
+_NOT_A_GENERATOR = ("preprocess", "session", "seed")
 
 _MODEL_SUFFIXES = (".glb", ".gltf", ".obj", ".ply", ".stl")
 
@@ -124,8 +139,21 @@ def make_client():
 
 
 def _named_endpoints(client) -> dict:
+    """view_api()'s silence-the-printout kwarg has changed names across
+    gradio_client versions (`print_response` -> `print_info`), so pick
+    whichever this install actually declares.
+    """
+    import inspect
+
+    kwargs = {"return_format": "dict"}
+    params = inspect.signature(client.view_api).parameters
+    for name in ("print_info", "print_response"):
+        if name in params:
+            kwargs[name] = False
+            break
+
     try:
-        api = client.view_api(print_response=False, return_format="dict") or {}
+        api = client.view_api(**kwargs) or {}
     except Exception as e:
         raise GenerationError(f"could not read the API of {HF_SPACE!r}: {e}") from e
     return api.get("named_endpoints", {}) or {}
@@ -138,6 +166,8 @@ def _pick(endpoints: dict, candidates: tuple[str, ...], *, needs_image: bool) ->
             return name
     if needs_image:
         for name, spec in endpoints.items():
+            if any(bad in name for bad in _NOT_A_GENERATOR):
+                continue
             if _image_param_index(spec) is not None:
                 return name
     return None

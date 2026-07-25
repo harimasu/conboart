@@ -38,8 +38,7 @@ def main() -> int:
         print(f"Could not connect: {e}")
         return 1
 
-    api = client.view_api(print_response=False, return_format="dict") or {}
-    endpoints = api.get("named_endpoints", {}) or {}
+    endpoints = hf_client._named_endpoints(client)
     if not endpoints:
         print("This Space exposes no named API endpoints.")
         return 1

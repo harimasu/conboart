@@ -7,5 +7,6 @@ numpy>=1.26
 scipy>=1.11  # trimesh needs this for graph ops (fix_normals, split, body_count)
 pycollada>=0.9  # trimesh needs this to export .dae (Collada)
 python-dotenv>=1.0
+gradio_client>=1.3  # GENERATOR=hf — calls a free Hugging Face Space (TRELLIS)
 # Optional — Tier 3 CAD export (STEP/IGES). Conda-friendly; not required.
 # pythonocc-core

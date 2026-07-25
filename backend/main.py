@@ -20,8 +20,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import convert, mesh_utils, meshy_client
-from .config import MAX_UPLOAD_BYTES, SESSION_TTL_MIN
+from . import convert, generator, mesh_utils
+from .config import GENERATOR, MAX_UPLOAD_BYTES, SESSION_TTL_MIN
+from .errors import GenerationError
 
 app = FastAPI(title="CONBOART", version="0.1.0")
 app.add_middleware(
@@ -49,6 +50,12 @@ def _drop(job_id: str) -> None:
 
 
 # --- API --------------------------------------------------------------------
+@app.get("/api/health")
+def health():
+    """Which generator is live. Handy for confirming your .env took effect."""
+    return {"status": "ok", "generator": GENERATOR}
+
+
 @app.post("/api/generate")
 async def generate(payload: dict = Body(...)):
     """Body: { "image_base64": "<...>", "mime": "image/png" }"""
@@ -66,10 +73,8 @@ async def generate(payload: dict = Body(...)):
 
     # Generate (native size) -> cleanup -> printability
     try:
-        task_id = await meshy_client.submit_image(image_bytes, payload.get("mime", "image/png"))
-        task = await meshy_client.poll_until_done(task_id)
-        glb = await meshy_client.download_model(task)
-    except meshy_client.MeshyError as e:
+        glb = await generator.generate(image_bytes, payload.get("mime", "image/png"))
+    except GenerationError as e:
         raise HTTPException(502, f"generation failed: {e}")
 
     mesh = mesh_utils.load(glb, "glb")

@@ -750,7 +750,7 @@ function addOrbit(stage){
   stage.addEventListener('pointerdown',e=>{dragging=true;autoRot=false;lx=e.clientX;ly=e.clientY;stage.setPointerCapture(e.pointerId);});
   stage.addEventListener('pointermove',e=>{
     if(!dragging)return;
-    rotY+=(e.clientX-lx)*0.008; rotX+=(e.clientY-ly)*0.008;
+    rotY-=(e.clientX-lx)*0.008; rotX+=(e.clientY-ly)*0.008;
     rotX=Math.max(-1.2,Math.min(1.2,rotX));
     lx=e.clientX;ly=e.clientY;
   });

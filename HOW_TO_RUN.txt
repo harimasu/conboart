@@ -22,8 +22,8 @@ MANUAL STEPS (PowerShell)
 2. Install dependencies:
      pip install -r backend\requirements.txt
 
-3. Make sure the env file exists (leave MESHY_API_KEY blank to run in
-   MOCK mode, no Meshy account needed):
+3. Make sure the env file exists (it ships as GENERATOR=mock, which runs
+   offline with no account needed -- see CHOOSING A GENERATOR below):
      copy backend\.env.example backend\.env
 
 4. Run the server:
@@ -33,10 +33,41 @@ MANUAL STEPS (PowerShell)
      http://127.0.0.1:8000/
 
 
+CHOOSING A GENERATOR
+--------------------
+Set GENERATOR in backend\.env to pick what builds the 3D model:
+
+  GENERATOR=mock    Free, offline, instant. Always returns a sample
+                    sphere and ignores your image. Use this while
+                    building the UI and testing the pipeline.
+
+  GENERATOR=hf      Free, and a REAL model from YOUR image. Uses the
+                    open-source TRELLIS model on a public Hugging Face
+                    Space. Add a free token from
+                    https://huggingface.co/settings/tokens as HF_TOKEN
+                    in .env for a bigger daily quota (no credit card).
+                    Limited free quota per day, and slower because you
+                    wait in a queue.
+
+  GENERATOR=meshy   The paid Meshy service. Needs MESHY_API_KEY.
+
+Check which one is active while the server is running:
+     http://127.0.0.1:8000/api/health
+
+If GENERATOR is not set, the old behaviour still applies: mock unless
+MESHY_API_KEY is set, and MESHY_MOCK=1 still forces mock.
+
+
+TROUBLESHOOTING
+---------------
+- "GET /favicon.ico 404" in the terminal is harmless. The browser asks
+  for a tab icon that doesn't exist; it does not affect the app.
+- GENERATOR=hf failing? Public Spaces change their API from time to
+  time. Run this to see what the Space offers:
+     python -m backend.hf_probe
+  Then pin the right endpoint in .env, e.g. HF_API_NAME=/image_to_3d
+
+
 NOTES
 -----
-- MOCK mode: with no MESHY_API_KEY set (or MESHY_MOCK=1), the backend
-  fabricates a sample model instead of calling Meshy, so you can test
-  the whole pipeline offline. Add a real key and set MESHY_MOCK=0 to
-  use the actual Meshy service.
 - Requires Python 3.10+.

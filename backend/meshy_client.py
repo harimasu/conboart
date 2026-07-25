@@ -5,9 +5,7 @@ task succeeds, then download the resulting model. This module isolates all of
 that so the rest of the app doesn't care whether it's talking to Meshy or to
 the local MOCK generator.
 
-IMPORTANT: confirm the exact endpoints, request/response shapes, and limits
-against Meshy's official docs before relying on this in production — the paths
-below follow the documented v1 image-to-3D flow but may change.
+Endpoints confirmed against https://docs.meshy.ai/en/api/image-to-3d.
 """
 from __future__ import annotations
 
@@ -34,6 +32,35 @@ def _headers() -> dict:
     return {"Authorization": f"Bearer {MESHY_API_KEY}"}
 
 
+async def _request_with_retry(
+    client: httpx.AsyncClient, method: str, url: str, *, max_retries: int = 5, **kwargs
+) -> httpx.Response:
+    """Issue a request, retrying on 429 (rate limit / queue full) with backoff.
+
+    Network failures (timeouts, connection errors) and non-retryable error
+    statuses are raised as MeshyError so callers only need to catch one thing.
+    """
+    backoff = 1.0
+    for attempt in range(max_retries + 1):
+        try:
+            r = await client.request(method, url, **kwargs)
+        except httpx.HTTPError as e:
+            raise MeshyError(f"network error calling Meshy: {e}") from e
+
+        if r.status_code == 429 and attempt < max_retries:
+            retry_after = r.headers.get("Retry-After")
+            wait = float(retry_after) if retry_after else backoff
+            await asyncio.sleep(wait)
+            backoff = min(backoff * 2, 30)
+            continue
+
+        if r.status_code >= 400:
+            raise MeshyError(f"{method} {url} failed: {r.status_code} {r.text}")
+        return r
+
+    raise MeshyError(f"{method} {url}: still rate-limited after {max_retries} retries")
+
+
 async def submit_image(image_bytes: bytes, mime: str = "image/png") -> str:
     """Submit an image and return a task id.
 
@@ -50,13 +77,13 @@ async def submit_image(image_bytes: bytes, mime: str = "image/png") -> str:
         # add prompt hints / topology / target polycount here as needed
     }
     async with httpx.AsyncClient(timeout=30) as client:
-        r = await client.post(
-            f"{MESHY_BASE_URL}/v1/image-to-3d",
+        r = await _request_with_retry(
+            client,
+            "POST",
+            f"{MESHY_BASE_URL}/openapi/v1/image-to-3d",
             headers=_headers(),
             json=payload,
         )
-        if r.status_code >= 400:
-            raise MeshyError(f"submit failed: {r.status_code} {r.text}")
         return r.json()["result"]  # Meshy returns the task id under "result"
 
 
@@ -69,12 +96,12 @@ async def poll_until_done(task_id: str) -> dict:
     deadline = time.time() + POLL_TIMEOUT_S
     async with httpx.AsyncClient(timeout=30) as client:
         while time.time() < deadline:
-            r = await client.get(
-                f"{MESHY_BASE_URL}/v1/image-to-3d/{task_id}",
+            r = await _request_with_retry(
+                client,
+                "GET",
+                f"{MESHY_BASE_URL}/openapi/v1/image-to-3d/{task_id}",
                 headers=_headers(),
             )
-            if r.status_code >= 400:
-                raise MeshyError(f"poll failed: {r.status_code} {r.text}")
             data = r.json()
             status = data.get("status")
             if status == "SUCCEEDED":
@@ -96,7 +123,5 @@ async def download_model(task: dict) -> bytes:
 
     url = task["model_urls"]["glb"]
     async with httpx.AsyncClient(timeout=120) as client:
-        r = await client.get(url)
-        if r.status_code >= 400:
-            raise MeshyError(f"download failed: {r.status_code}")
+        r = await _request_with_retry(client, "GET", url)
         return r.content

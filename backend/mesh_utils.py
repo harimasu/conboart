@@ -76,9 +76,15 @@ def bake_scale(mesh, size: str):
 
 
 def model_info(mesh) -> dict:
+    """Native-scale info. Generation happens at a small normalized size, so
+    volume here is deliberately full precision — the frontend scales it up
+    to the chosen S/M/L preset (cubically) before rounding for display.
+    Rounding to 2dp here first would zero out that tiny native volume before
+    scaling ever sees it.
+    """
     ext = [round(float(x), 2) for x in mesh.extents]
     return {
         "dimensions_mm": ext,
         "triangles": int(len(mesh.faces)),
-        "volume_cm3": round(float(mesh.volume) / 1000.0, 2) if mesh.is_volume else None,
+        "volume_cm3": float(mesh.volume) / 1000.0 if mesh.is_volume else None,
     }

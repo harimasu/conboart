@@ -78,7 +78,7 @@ async def generate(payload: dict = Body(...)):
         raise HTTPException(502, f"generation failed: {e}")
 
     mesh = mesh_utils.load(glb, "glb")
-    mesh_utils.cleanup(mesh)
+    mesh = mesh_utils.cleanup(mesh)
     report = mesh_utils.printability(mesh)
     info = mesh_utils.model_info(mesh)
 
@@ -111,7 +111,7 @@ def cleanup(job_id: str):
     if not sess:
         raise HTTPException(404, "no such session")
     mesh = mesh_utils.load((sess["dir"] / "model.glb").read_bytes(), "glb")
-    mesh_utils.cleanup(mesh)
+    mesh = mesh_utils.cleanup(mesh)
     (sess["dir"] / "model.glb").write_bytes(mesh.export(file_type="glb"))
     # re-run printability after cleanup
     return {"report": mesh_utils.printability(mesh), "info": mesh_utils.model_info(mesh)}

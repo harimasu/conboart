@@ -154,6 +154,7 @@
               <li><span class="mk">✓</span> Single connected body</li>
               <li><span class="mk">✓</span> Valid, positive volume</li>
             </ul>
+            <button class="btn btn-primary" id="fixBtn" onclick="cleanUp()" style="display:none;width:100%;margin-top:10px">Fix printability issues</button>
           </div>
           <button class="btn btn-ghost" id="cleanBtn" onclick="cleanUp()">Clean up model</button>
           <button class="btn btn-primary" onclick="openExportModal()">Export…</button>
@@ -548,6 +549,8 @@ function renderPrintability(report){
     li.innerHTML='<span class="mk" style="color:'+(ok?'var(--green)':'var(--red)')+'">'+(ok?'✓':'✕')+'</span> '+labels[key];
     ul.appendChild(li);
   }
+
+  document.getElementById('fixBtn').style.display=report.verdict==='fail'?'':'none';
 }
 
 function computeScaledStats(target){
@@ -586,7 +589,11 @@ document.querySelectorAll('#scale button').forEach(b=>{
 async function cleanUp(){
   if(!state.jobId) return;
   const btn=document.getElementById('cleanBtn');
+  const fixBtn=document.getElementById('fixBtn');
+  const fixWasShown=fixBtn.style.display!=='none';
   btn.disabled=true; btn.textContent='Cleaning up…';
+  fixBtn.disabled=true;
+  if(fixWasShown) fixBtn.textContent='Fixing…';
   try{
     const r=await fetch(`/api/cleanup/${state.jobId}`,{method:'POST'});
     if(!r.ok) throw new Error(await apiErrorMessage(r));
@@ -594,7 +601,7 @@ async function cleanUp(){
     state.nativeDims=data.info.dimensions_mm;
     state.nativeVolume=data.info.volume_cm3;
     state.triangles=data.info.triangles;
-    renderPrintability(data.report);
+    renderPrintability(data.report);   // shows/hides fixBtn for the new verdict
     updateInfoPanel();
     document.getElementById('iTri').textContent=state.triangles.toLocaleString();
     try{
@@ -603,12 +610,15 @@ async function cleanUp(){
       if(viewerReady) loadMeshFromBuffer(buf);
     }catch(e){ console.error(e); }
     btn.textContent='Cleaned ✓';
-    toast('Model cleaned · printability re-checked');
+    toast(data.report.verdict==='ok' ? 'Model cleaned · now printable' : 'Model cleaned · printability re-checked');
   }catch(e){
     btn.textContent='Clean up model';
     toast('Cleanup failed: '+e.message);
   }finally{
-    setTimeout(()=>{ btn.disabled=false; btn.textContent='Clean up model'; },1400);
+    setTimeout(()=>{
+      btn.disabled=false; btn.textContent='Clean up model';
+      fixBtn.disabled=false; fixBtn.textContent='Fix printability issues';
+    },1400);
   }
 }
 

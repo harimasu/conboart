@@ -27,12 +27,38 @@ def _bytes_io(data: bytes):
 
 
 def cleanup(mesh):
-    """Repair common issues in AI-generated meshes. Returns the same mesh."""
+    """Repair common issues in AI-generated meshes, escalating until the mesh
+    passes printability() or there's nothing left to try.
+
+    Returns the repaired mesh. This can be a *different* object than the one
+    passed in — isolating the main body (below) builds a new Trimesh — so
+    callers must use the return value rather than assume in-place mutation.
+    """
+    mesh = _repair_pass(mesh)
+
+    if not mesh.is_watertight:
+        # AI-exported meshes often have vertices that are meant to coincide
+        # but differ by float noise, which reads as a boundary hole rather
+        # than a true gap. Re-weld at a coarser tolerance and retry.
+        mesh.merge_vertices(digits_vertex=4)
+        mesh = _repair_pass(mesh)
+
+    bodies = mesh.split(only_watertight=False)
+    if len(bodies) > 1:
+        # Small disconnected shards are near-universal noise in generated
+        # meshes, not an intentional multi-part model — keep the main body.
+        mesh = max(bodies, key=lambda b: len(b.faces))
+        mesh = _repair_pass(mesh)
+
+    return mesh
+
+
+def _repair_pass(mesh):
     mesh.merge_vertices()
     mesh.update_faces(mesh.unique_faces())
     mesh.update_faces(mesh.nondegenerate_faces())
     mesh.remove_unreferenced_vertices()
-    mesh.fix_normals()
+    mesh.fix_normals(multibody=True)
     try:
         mesh.fill_holes()
     except Exception:

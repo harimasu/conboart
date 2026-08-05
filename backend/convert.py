@@ -1,6 +1,6 @@
 """Export/convert a mesh to the requested format.
 
-Tiers (see docs/2d-to-3d-converter.md):
+Tiers (see docs/DESIGN-SPEC.md):
   1. Mesh formats (STL/OBJ/PLY/GLB/GLTF/OFF/DAE) — native via Trimesh.
   2. SketchUp — we can't write .skp directly. Export DAE (or GLB) and let the
      user Import + Save As .skp in SketchUp Pro/Studio.

@@ -26,6 +26,23 @@ SESSION_TTL_MIN = int(os.getenv("SESSION_TTL_MIN", "30"))
 POLL_TIMEOUT_S = int(os.getenv("POLL_TIMEOUT_S", "180"))
 POLL_INTERVAL_S = float(os.getenv("POLL_INTERVAL_S", "3"))
 
+# --- CORS -------------------------------------------------------------------
+# The backend serves its own frontend, so same-origin needs no CORS at all and
+# the default is therefore "no cross-origin access". Only set this if you host
+# the frontend somewhere else; a wildcard would let any site on the internet
+# spend your Meshy credits from a visitor's browser.
+# Example: ALLOWED_ORIGINS=https://conboart.example.com,https://staging.example.com
+ALLOWED_ORIGINS = [
+    o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()
+]
+
+# --- Rate limiting ----------------------------------------------------------
+# Generation costs real Meshy credits, so cap how often one client can ask.
+# In-process only: it resets on restart and is per-worker, so it protects a
+# single-instance deployment. Put a real limiter at the edge if you scale out.
+RATE_LIMIT_GENERATES = int(os.getenv("RATE_LIMIT_GENERATES", "5"))
+RATE_LIMIT_WINDOW_S = int(os.getenv("RATE_LIMIT_WINDOW_S", "600"))
+
 # --- Auto-scale presets (longest bounding-box dimension, in millimetres) ----
 # Tune these to your target printer's bed size.
 SCALE_PRESETS_MM = {"S": 50.0, "M": 100.0, "L": 150.0}

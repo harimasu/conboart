@@ -30,7 +30,13 @@ conboart/
 │   ├── requirements.txt
 │   └── .env.example
 ├── frontend/
-│   └── index.html        # The full CONBOART UI (Upload / About / FAQs)
+│   ├── index.html        # The full CONBOART UI (Upload / About / FAQs)
+│   ├── style.css         # Theme tokens, palettes, layout
+│   └── vendor/           # Vendored three.js r128 + GLTFLoader (MIT)
+├── api/
+│   └── index.py          # Vercel ASGI entrypoint (re-exports backend.main:app)
+├── run.bat               # Windows one-click setup + run
+├── HOW_TO_RUN.txt        # Step-by-step run instructions
 ├── docs/
 │   ├── DESIGN-SPEC.md            # Full design spec
 │   ├── CONBOART-UI-documentation.html   # All screens for screenshots
@@ -70,9 +76,12 @@ model instead of calling Meshy, so you can build and test the whole pipeline
 offline before subscribing. Swap in a real key and set `MESHY_MOCK=0` to use the
 actual service.
 
-> The frontend prototype currently runs a **simulated** generation flow so it
-> works standalone. Wiring its buttons to the `/api/*` endpoints below is the
-> next integration step.
+### Limits
+
+Generation is rate-limited per client IP (`RATE_LIMIT_GENERATES` per
+`RATE_LIMIT_WINDOW_S`, default 5 per 10 minutes) because each call spends Meshy
+credits. Cross-origin access is off unless you set `ALLOWED_ORIGINS` — the
+backend serves its own frontend, so same-origin needs no CORS.
 
 ## API
 

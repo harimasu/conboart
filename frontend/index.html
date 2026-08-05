@@ -136,10 +136,10 @@
           <div class="card">
             <h4>Model info</h4>
             <ul class="info">
-              <li><span class="k">Dimensions</span><span class="v" id="iDim">62 × 41 × 100 mm</span></li>
-              <li><span class="k">Triangles</span><span class="v" id="iTri">48,210</span></li>
-              <li><span class="k">CONBOARTt</span><span class="v">GLB (native)</span></li>
-              <li><span class="k">Volume</span><span class="v" id="iVol">31.4 cm³</span></li>
+              <li><span class="k">Dimensions</span><span class="v" id="iDim">—</span></li>
+              <li><span class="k">Triangles</span><span class="v" id="iTri">—</span></li>
+              <li><span class="k">Format</span><span class="v">GLB (native)</span></li>
+              <li><span class="k">Volume</span><span class="v" id="iVol">—</span></li>
             </ul>
           </div>
           <div class="card" id="printCard">
@@ -192,8 +192,8 @@
             <h4>Summary</h4>
             <ul class="summary info">
               <li><span class="k">Size</span><span class="v" id="sSize">Medium · 100 mm</span></li>
-              <li><span class="k">Dimensions</span><span class="v" id="sDim">62 × 41 × 100 mm</span></li>
-              <li><span class="k">Printability</span><span class="v" style="color:var(--green)">Ready ✓</span></li>
+              <li><span class="k">Dimensions</span><span class="v" id="sDim">—</span></li>
+              <li><span class="k">Printability</span><span class="v" id="sPrint">—</span></li>
               <li><span class="k">File</span><span class="v" id="sFile">model.stl</span></li>
             </ul>
           </div>
@@ -344,9 +344,10 @@
 
 <div class="toast" id="toast">done</div>
 
-<!-- Three.js for the live viewer -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<!-- Three.js r128 for the live viewer. Vendored (MIT, see vendor/LICENSE-three.txt)
+     so the app works offline and doesn't break when a CDN is blocked. -->
+<script src="vendor/three.min.js"></script>
+<script src="vendor/GLTFLoader.js"></script>
 <script>
 /* ---------------- Theme (palette + light/dark) ---------------- */
 function setTheme(t, persist){
@@ -391,10 +392,27 @@ function showView(v){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
+// nativeDims/nativeVolume are in the mesh's own units, not mm — the scale is
+// baked at export, so the client converts for display. Null until a real model
+// arrives; nothing here is a stand-in number.
 const state={
-  file:null, size:'M', mm:100, printable:true, hasModel:false, jobActive:false,
-  jobId:null, nativeDims:[62,41,100], nativeVolume:31.4, triangles:0
+  file:null, size:'M', mm:100, verdict:null, hasModel:false, jobActive:false,
+  jobId:null, nativeDims:null, nativeVolume:null, triangles:null
 };
+
+const VERDICT={
+  ok:  {summary:'Ready ✓',            headline:'Ready to print',    mark:'✓', cls:'ok',   color:'var(--green)'},
+  warn:{summary:'May need attention', headline:'May need attention',mark:'!', cls:'warn', color:'var(--brick)'},
+  fail:{summary:'Not print-ready',    headline:'Not print-ready',   mark:'✕', cls:'fail', color:'var(--red)'}
+};
+function verdictInfo(v){ return VERDICT[v] || VERDICT.fail; }
+
+function applyInfo(info){
+  info=info||{};
+  state.nativeDims=Array.isArray(info.dimensions)?info.dimensions:null;
+  state.nativeVolume=typeof info.volume==='number'?info.volume:null;
+  state.triangles=typeof info.triangles==='number'?info.triangles:null;
+}
 
 async function apiErrorMessage(r){
   try{ const j=await r.json(); return j.detail || JSON.stringify(j); }
@@ -498,9 +516,7 @@ async function startGenerate(){
     const data=await r.json();
 
     state.jobId=data.job_id;
-    state.nativeDims=data.info.dimensions_mm;
-    state.nativeVolume=data.info.volume_cm3;
-    state.triangles=data.info.triangles;
+    applyInfo(data.info);
     renderPrintability(data.report);
 
     let buf=null;
@@ -514,7 +530,6 @@ async function startGenerate(){
     state.hasModel=true;
     showView('viewer');
     updateInfoPanel();
-    document.getElementById('iTri').textContent=state.triangles.toLocaleString();
   }catch(e){
     clearInterval(iv);
     state.jobActive=false;
@@ -525,14 +540,15 @@ async function startGenerate(){
 }
 
 function renderPrintability(report){
-  state.printable=report.verdict!=='fail';
+  state.verdict=report.verdict;
+  const v=verdictInfo(report.verdict);
   const badge=document.getElementById('pBadge');
   const verdict=document.getElementById('pVerdict');
-  const cls=report.verdict==='ok'?'ok':report.verdict==='warn'?'warn':'fail';
-  badge.className='print-badge '+cls;
-  badge.textContent=report.verdict==='ok'?'✓':report.verdict==='warn'?'!':'✕';
-  verdict.className='print-verdict'+(report.verdict==='ok'?' ok':'');
-  verdict.textContent=report.verdict==='ok'?'Ready to print':report.verdict==='warn'?'May need attention':'Not print-ready';
+  badge.className='print-badge '+v.cls;
+  badge.textContent=v.mark;
+  verdict.className='print-verdict'+(v.cls==='ok'?' ok':'');
+  verdict.textContent=v.headline;
+  renderPrintabilitySummary();
 
   const labels={
     watertight:'Watertight — no holes',
@@ -550,26 +566,42 @@ function renderPrintability(report){
   }
 }
 
+function renderPrintabilitySummary(){
+  const el=document.getElementById('sPrint');
+  if(!state.verdict){ el.textContent='—'; el.style.color=''; return; }
+  const v=verdictInfo(state.verdict);
+  el.textContent=v.summary;
+  el.style.color=v.color;
+}
+
+/* The API reports native-unit measurements — scale is baked at export — so the
+   client converts: longest axis becomes `target` mm, everything else follows. */
 function computeScaledStats(target){
-  const dims=(state.nativeDims&&state.nativeDims.length===3)?state.nativeDims:[62,41,100];
-  const vol=typeof state.nativeVolume==='number'?state.nativeVolume:31.4;
-  const longest=Math.max(...dims)||1;
+  const dims=(state.nativeDims&&state.nativeDims.length===3)?state.nativeDims:null;
+  if(!dims) return {dims:null, vol:null};
+  const longest=Math.max(...dims);
+  if(!(longest>0)) return {dims:null, vol:null};
   const factor=target/longest;
+  const vol=typeof state.nativeVolume==='number'?state.nativeVolume:null;
   return {
     dims:dims.map(d=>+(d*factor).toFixed(1)),
-    vol:+(vol*Math.pow(factor,3)).toFixed(2)
+    // native units³ → mm³ → cm³
+    vol:vol===null?null:+(vol*Math.pow(factor,3)/1000).toFixed(2)
   };
 }
 
 function updateInfoPanel(){
   const label={S:'Small',M:'Medium',L:'Large'}[state.size];
   const {dims,vol}=computeScaledStats(state.mm);
-  const dimStr=dims.join(' × ')+' mm';
+  const dimStr=dims?dims.join(' × ')+' mm':'—';
   document.getElementById('iDim').textContent=dimStr;
   document.getElementById('stageScale').textContent=label+' · '+state.mm+' mm';
-  document.getElementById('iVol').textContent=vol+' cm³';
+  document.getElementById('iVol').textContent=vol===null?'—':vol+' cm³';
+  document.getElementById('iTri').textContent=
+    typeof state.triangles==='number'?state.triangles.toLocaleString():'—';
   document.getElementById('sSize').textContent=label+' · '+state.mm+' mm';
   document.getElementById('sDim').textContent=dimStr;
+  renderPrintabilitySummary();
 }
 
 /* ---------------- Scale ---------------- */
@@ -591,12 +623,9 @@ async function cleanUp(){
     const r=await fetch(`/api/cleanup/${state.jobId}`,{method:'POST'});
     if(!r.ok) throw new Error(await apiErrorMessage(r));
     const data=await r.json();
-    state.nativeDims=data.info.dimensions_mm;
-    state.nativeVolume=data.info.volume_cm3;
-    state.triangles=data.info.triangles;
+    applyInfo(data.info);
     renderPrintability(data.report);
     updateInfoPanel();
-    document.getElementById('iTri').textContent=state.triangles.toLocaleString();
     try{
       const buf=await fetchModelBlob(state.jobId);
       modelBuffer=buf;
@@ -616,13 +645,12 @@ async function cleanUp(){
 function openExportModal(){
   document.getElementById('mSize').textContent={S:'Small',M:'Medium',L:'Large'}[state.size]+' · '+state.mm+' mm';
   const warn=document.getElementById('mWarn');
-  if(state.printable){
-    document.getElementById('mPrint').innerHTML='Ready ✓';
-    warn.style.display='none';
-  }else{
-    document.getElementById('mPrint').textContent='Has warnings';
-    warn.style.display='block';
-  }
+  const v=verdictInfo(state.verdict);
+  const mPrint=document.getElementById('mPrint');
+  mPrint.textContent=state.verdict?v.summary:'—';
+  mPrint.style.color=state.verdict?v.color:'';
+  // Anything short of a clean pass gets the heads-up, warnings included.
+  warn.style.display=state.verdict==='ok'?'none':'block';
   document.getElementById('overlay').classList.add('show');
 }
 function closeModal(){document.getElementById('overlay').classList.remove('show');}
@@ -630,7 +658,7 @@ function confirmExport(){closeModal();showView('export');fmtNote();}
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
-/* ---------------- CONBOARTt note + download ---------------- */
+/* ---------------- Format note + download ---------------- */
 function fmtNote(){
   const sel=document.getElementById('fmt');
   const opt=sel.options[sel.selectedIndex];
@@ -669,8 +697,10 @@ function resetForNewUpload(){
   // clear file + model state and return to the upload step
   clearFile();
   state.hasModel=false; state.jobActive=false; state.size='M'; state.mm=100;
-  state.jobId=null; state.nativeDims=[62,41,100]; state.nativeVolume=31.4; state.triangles=0;
+  state.jobId=null; state.nativeDims=null; state.nativeVolume=null;
+  state.triangles=null; state.verdict=null;
   modelBuffer=null;
+  updateInfoPanel();
   if(mesh){ scene.remove(mesh); mesh=null; }
   document.querySelectorAll('#scale button').forEach(x=>x.classList.toggle('on', x.dataset.size==='M'));
   document.getElementById('dlStatus').style.display='none';
@@ -697,7 +727,22 @@ async function fetchModelBlob(jobId){
   return await r.arrayBuffer();
 }
 
-function ensureViewer(){ if(viewerReady){onResize();return;} initViewer(); }
+function ensureViewer(){
+  if(viewerReady){onResize();return;}
+  // The viewer is a preview, not the product — if three.js failed to load,
+  // say so and leave export working rather than throwing on every view switch.
+  if(typeof THREE==='undefined'||!THREE.GLTFLoader){
+    const stage=document.getElementById('stage');
+    if(!stage.querySelector('.stage-fallback')){
+      const p=document.createElement('p');
+      p.className='stage-fallback';
+      p.textContent='3D preview unavailable — the viewer library did not load. You can still size and export the model.';
+      stage.appendChild(p);
+    }
+    return;
+  }
+  initViewer();
+}
 function initViewer(){
   const stage=document.getElementById('stage');
   const w=stage.clientWidth,h=stage.clientHeight;

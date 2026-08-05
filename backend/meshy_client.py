@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import logging
 import time
 
 import httpx
@@ -26,12 +27,25 @@ from .config import (
 )
 
 
+log = logging.getLogger(__name__)
+
+
 class MeshyError(RuntimeError):
     pass
 
 
 def _headers() -> dict:
     return {"Authorization": f"Bearer {MESHY_API_KEY}"}
+
+
+def _fail(stage: str, r: httpx.Response) -> MeshyError:
+    """Log the upstream body for debugging, but keep it out of the exception.
+
+    The message ends up in the HTTP response the browser sees, and Meshy's
+    error bodies can echo request detail we would rather not hand to a caller.
+    """
+    log.error("meshy %s failed: %s %s", stage, r.status_code, r.text[:2000])
+    return MeshyError(f"{stage} failed (upstream status {r.status_code})")
 
 
 async def submit_image(image_bytes: bytes, mime: str = "image/png") -> str:
@@ -56,8 +70,13 @@ async def submit_image(image_bytes: bytes, mime: str = "image/png") -> str:
             json=payload,
         )
         if r.status_code >= 400:
-            raise MeshyError(f"submit failed: {r.status_code} {r.text}")
-        return r.json()["result"]  # Meshy returns the task id under "result"
+            raise _fail("submit", r)
+        try:
+            task_id = r.json()["result"]  # Meshy returns the task id under "result"
+        except (ValueError, KeyError, TypeError) as e:
+            log.error("unexpected submit response: %s", r.text[:2000])
+            raise MeshyError("submit returned an unexpected response shape") from e
+        return task_id
 
 
 async def poll_until_done(task_id: str) -> dict:
@@ -74,13 +93,14 @@ async def poll_until_done(task_id: str) -> dict:
                 headers=_headers(),
             )
             if r.status_code >= 400:
-                raise MeshyError(f"poll failed: {r.status_code} {r.text}")
+                raise _fail("poll", r)
             data = r.json()
             status = data.get("status")
             if status == "SUCCEEDED":
                 return data
             if status in {"FAILED", "CANCELED"}:
-                raise MeshyError(f"generation {status}: {data}")
+                log.error("meshy task %s ended as %s: %s", task_id, status, data)
+                raise MeshyError(f"generation {status.lower()}")
             await asyncio.sleep(POLL_INTERVAL_S)
     raise MeshyError("generation timed out")
 
@@ -94,9 +114,14 @@ async def download_model(task: dict) -> bytes:
         mesh = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
         return mesh.export(file_type="glb")
 
-    url = task["model_urls"]["glb"]
+    try:
+        url = task["model_urls"]["glb"]
+    except (KeyError, TypeError) as e:
+        log.error("succeeded task carried no glb url: %s", task)
+        raise MeshyError("the finished task did not include a GLB url") from e
+
     async with httpx.AsyncClient(timeout=120) as client:
         r = await client.get(url)
         if r.status_code >= 400:
-            raise MeshyError(f"download failed: {r.status_code}")
+            raise _fail("download", r)
         return r.content

@@ -11,13 +11,20 @@ from __future__ import annotations
 from .config import SCALE_PRESETS_MM
 
 
+class NotAMeshError(ValueError):
+    """The loaded file did not contain usable triangle geometry."""
+
+
 def load(data: bytes, file_type: str = "glb"):
     import trimesh
 
-    scene_or_mesh = trimesh.load(
-        file_obj=_bytes_io(data), file_type=file_type, force="mesh"
-    )
-    return scene_or_mesh
+    mesh = trimesh.load(file_obj=_bytes_io(data), file_type=file_type, force="mesh")
+    # force="mesh" concatenates a scene into one Trimesh, but a file with no
+    # triangles still comes back as a PointCloud/empty geometry — every caller
+    # below assumes .faces exists, so reject it here rather than 500 later.
+    if not hasattr(mesh, "faces") or len(mesh.faces) == 0:
+        raise NotAMeshError("the generated file contains no triangle geometry")
+    return mesh
 
 
 def _bytes_io(data: bytes):
@@ -76,9 +83,17 @@ def bake_scale(mesh, size: str):
 
 
 def model_info(mesh) -> dict:
-    ext = [round(float(x), 2) for x in mesh.extents]
+    """Measurements in the mesh's own native units — NOT millimetres.
+
+    Scale is baked at export, so nothing here has been scaled yet. The client
+    multiplies by the S/M/L factor to get mm and cm³ for display.
+
+    Do not round these: a generated mesh is typically only 1-2 units across, so
+    its raw volume is ~1e-3 of a "unit cm³". Rounding here and cubing the scale
+    factor on the client turned every volume into 0.
+    """
     return {
-        "dimensions_mm": ext,
+        "dimensions": [float(x) for x in mesh.extents],
         "triangles": int(len(mesh.faces)),
-        "volume_cm3": round(float(mesh.volume) / 1000.0, 2) if mesh.is_volume else None,
+        "volume": float(mesh.volume) if mesh.is_volume else None,
     }

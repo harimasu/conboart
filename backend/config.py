@@ -9,21 +9,43 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# --- Generator selection ------------------------------------------------------
+# mock  — built-in sample sphere. hf — free TRELLIS Hugging Face Space.
+# meshy — the paid Meshy API. Falls back to "mock" for any unrecognized value.
+GENERATOR = os.getenv("GENERATOR", "mock").strip().lower()
+if GENERATOR not in {"mock", "hf", "meshy"}:
+    GENERATOR = "mock"
+
 # --- Meshy AI ---------------------------------------------------------------
 # Get a key from https://www.meshy.ai (a free test-mode key works for wiring
 # things up without spending credits). Leave unset to run in MOCK mode.
 MESHY_API_KEY = os.getenv("MESHY_API_KEY", "")
 MESHY_BASE_URL = os.getenv("MESHY_BASE_URL", "https://api.meshy.ai")
 
-# When true (or when no API key is set), the backend fabricates a sample model
-# instead of calling Meshy — handy for local development before subscribing.
-MESHY_MOCK = os.getenv("MESHY_MOCK", "").lower() in {"1", "true", "yes"} or not MESHY_API_KEY
+# When true, or when GENERATOR=meshy but no key is set, the backend fabricates
+# a sample model instead of calling Meshy — handy for local development.
+# Also forced on for GENERATOR=mock, even if a Meshy key happens to be set.
+MESHY_MOCK = (
+    GENERATOR == "mock"
+    or os.getenv("MESHY_MOCK", "").lower() in {"1", "true", "yes"}
+    or (GENERATOR == "meshy" and not MESHY_API_KEY)
+)
+
+# --- Hugging Face (only used when GENERATOR=hf) ------------------------------
+# Free open-source TRELLIS via a public Hugging Face Space. A token from
+# https://huggingface.co/settings/tokens gives a bigger daily quota than the
+# shared anonymous pool, but isn't required.
+HF_TOKEN = os.getenv("HF_TOKEN", "")
+HF_SPACE = os.getenv("HF_SPACE", "trellis-community/TRELLIS")
+# Only set this if auto-discovery picks the wrong endpoint for the pipeline's
+# generation step. Run `python -m backend.hf_probe` to see the options.
+HF_API_NAME = os.getenv("HF_API_NAME", "")
 
 # --- Guard rails ------------------------------------------------------------
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
 MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
 SESSION_TTL_MIN = int(os.getenv("SESSION_TTL_MIN", "30"))
-POLL_TIMEOUT_S = int(os.getenv("POLL_TIMEOUT_S", "180"))
+POLL_TIMEOUT_S = int(os.getenv("POLL_TIMEOUT_S", "600"))
 POLL_INTERVAL_S = float(os.getenv("POLL_INTERVAL_S", "3"))
 
 # --- CORS -------------------------------------------------------------------

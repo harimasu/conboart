@@ -759,6 +759,11 @@ function initViewer(){
   scene.add(new THREE.AmbientLight(0x6d4a3a,.55));
 
   if(modelBuffer){ loadMeshFromBuffer(modelBuffer); } else { addPlaceholderMesh(); }
+  // Paint now rather than waiting on the first animate() tick — see the
+  // comment in loadMeshFromBuffer for why that tick isn't guaranteed to be
+  // prompt. Harmless no-op if modelBuffer's async parse hasn't resolved yet;
+  // that path paints itself once it does.
+  renderer.render(scene,camera);
 
   addOrbit(stage);
   viewerReady=true;
@@ -779,11 +784,24 @@ function loadMeshFromBuffer(buffer){
     const box=new THREE.Box3().setFromObject(obj);
     const size=new THREE.Vector3(); box.getSize(size);
     const center=new THREE.Vector3(); box.getCenter(center);
-    obj.position.sub(center);
     const maxDim=Math.max(size.x,size.y,size.z)||1;
-    obj.scale.setScalar(1.9/maxDim);
+    const scaleFactor=1.9/maxDim;
+    obj.scale.setScalar(scaleFactor);
+    // Three.js composes local-to-world as position + scale*localPoint, i.e.
+    // scale is applied BEFORE translation — so the recentering offset must be
+    // scaled too, or it's not compensated by the scale-down at all. For a
+    // model whose native bounding box is small this rounding error is easy
+    // to miss (still roughly on-screen); for one with large native
+    // coordinates it pushes the model dozens of units from the origin,
+    // completely outside the camera frustum (renders 0 triangles, no error).
+    obj.position.copy(center).multiplyScalar(-scaleFactor);
     scene.add(obj);
     mesh=obj;
+    // Paint immediately rather than waiting on the next animate() tick —
+    // requestAnimationFrame can be delayed or throttled (backgrounded tab,
+    // embedded webview, etc.), which otherwise leaves the canvas showing
+    // nothing until whenever the browser next decides to run it.
+    renderer.render(scene,camera);
   },(err)=>{
     console.error(err);
     toast('Could not load the model preview');

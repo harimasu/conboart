@@ -60,12 +60,13 @@ async def submit_image(image_bytes: bytes, mime: str = "image/png") -> str:
     data_uri = f"data:{mime};base64,{base64.b64encode(image_bytes).decode()}"
     payload = {
         "image_url": data_uri,
+        "ai_model": "latest",
         "enable_pbr": True,
         # add prompt hints / topology / target polycount here as needed
     }
     async with httpx.AsyncClient(timeout=30) as client:
         r = await client.post(
-            f"{MESHY_BASE_URL}/v1/image-to-3d",
+            f"{MESHY_BASE_URL}/openapi/v1/image-to-3d",
             headers=_headers(),
             json=payload,
         )
@@ -86,23 +87,30 @@ async def poll_until_done(task_id: str) -> dict:
         return {"status": "SUCCEEDED", "model_urls": {"glb": "mock://model.glb"}}
 
     deadline = time.time() + POLL_TIMEOUT_S
+    last_status, last_progress = "unknown", None
     async with httpx.AsyncClient(timeout=30) as client:
         while time.time() < deadline:
             r = await client.get(
-                f"{MESHY_BASE_URL}/v1/image-to-3d/{task_id}",
+                f"{MESHY_BASE_URL}/openapi/v1/image-to-3d/{task_id}",
                 headers=_headers(),
             )
             if r.status_code >= 400:
                 raise _fail("poll", r)
             data = r.json()
             status = data.get("status")
+            last_status, last_progress = status, data.get("progress")
             if status == "SUCCEEDED":
                 return data
             if status in {"FAILED", "CANCELED"}:
                 log.error("meshy task %s ended as %s: %s", task_id, status, data)
                 raise MeshyError(f"generation {status.lower()}")
             await asyncio.sleep(POLL_INTERVAL_S)
-    raise MeshyError("generation timed out")
+    # Distinguish "still going, just slow" from "actually stuck" — Meshy's
+    # own progress percentage says which, rather than a bare opaque timeout.
+    raise MeshyError(
+        f"generation timed out after {POLL_TIMEOUT_S}s "
+        f"(last status: {last_status}, progress: {last_progress}%)"
+    )
 
 
 async def download_model(task: dict) -> bytes:

@@ -23,9 +23,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import convert, mesh_utils, meshy_client
+from . import convert, hf_client, mesh_utils, meshy_client
 from .config import (
     ALLOWED_ORIGINS,
+    GENERATOR,
     MAX_UPLOAD_BYTES,
     RATE_LIMIT_GENERATES,
     RATE_LIMIT_WINDOW_S,
@@ -33,6 +34,11 @@ from .config import (
 )
 
 log = logging.getLogger(__name__)
+
+# mock has no dedicated module — it's meshy_client's MESHY_MOCK path, forced
+# on for GENERATOR=mock regardless of whether a Meshy key is set (config.py).
+_GENERATOR = {"hf": hf_client, "meshy": meshy_client, "mock": meshy_client}[GENERATOR]
+_GENERATOR_ERRORS = (meshy_client.MeshyError, hf_client.HFError)
 
 app = FastAPI(title="CONBOART", version="0.1.0")
 
@@ -135,23 +141,23 @@ async def generate(request: Request, payload: dict = Body(...)):
 
     # Generate (native size) -> cleanup -> printability
     try:
-        task_id = await meshy_client.submit_image(image_bytes, payload.get("mime", "image/png"))
-        task = await meshy_client.poll_until_done(task_id)
-        glb = await meshy_client.download_model(task)
-    except meshy_client.MeshyError as e:
+        task_id = await _GENERATOR.submit_image(image_bytes, payload.get("mime", "image/png"))
+        task = await _GENERATOR.poll_until_done(task_id)
+        glb = await _GENERATOR.download_model(task)
+    except _GENERATOR_ERRORS as e:
         raise HTTPException(502, f"generation failed: {e}")
 
     try:
         mesh = mesh_utils.load(glb, "glb")
     except mesh_utils.NotAMeshError as e:
         raise HTTPException(502, f"generation failed: {e}")
-    mesh_utils.cleanup(mesh)
+    mesh = mesh_utils.cleanup(mesh)
     report = mesh_utils.printability(mesh)
     info = mesh_utils.model_info(mesh)
 
     job_id = uuid.uuid4().hex
     workdir = Path(mkdtemp(prefix="conboart_"))
-    (workdir / "model.glb").write_bytes(mesh.export(file_type="glb"))
+    (workdir / "model.glb").write_bytes(mesh.export(file_type="glb", include_normals=True))
     SESSIONS[job_id] = {"dir": workdir, "created": time.time()}
 
     return {"job_id": job_id, "status": "done", "report": report, "info": info}
@@ -174,8 +180,11 @@ def report(job_id: str):
 def cleanup(job_id: str):
     sess = _get_session(job_id)
     mesh = _load_model(sess)
-    mesh_utils.cleanup(mesh)
-    (sess["dir"] / "model.glb").write_bytes(mesh.export(file_type="glb"))
+    # weld=True here (but not on initial generation): an explicit user click
+    # is the right place for the coarser near-touching-vertex snap that tries
+    # to bridge separate parts (chair legs to seat, etc.) into one solid.
+    mesh = mesh_utils.cleanup(mesh, weld=True)
+    (sess["dir"] / "model.glb").write_bytes(mesh.export(file_type="glb", include_normals=True))
     # re-run printability after cleanup
     return {"report": mesh_utils.printability(mesh), "info": mesh_utils.model_info(mesh)}
 

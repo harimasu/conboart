@@ -19,10 +19,24 @@ def to_bytes(mesh, fmt: str) -> bytes:
     if fmt == "gltf":
         # Without embed_buffers, trimesh splits gltf into a {json, .bin} dict.
         # Embed so the endpoint can serve a single self-contained file.
-        return next(iter(mesh.export(file_type="gltf", embed_buffers=True).values()))
+        return next(
+            iter(
+                mesh.export(
+                    file_type="gltf", embed_buffers=True, include_normals=True
+                ).values()
+            )
+        )
+
+    if fmt == "glb":
+        # trimesh only writes a NORMAL accessor if include_normals=True is
+        # passed explicitly (or normals happen to already be cached) — a
+        # viewer that doesn't compute its own fallback normals, like this
+        # app's vendored three.js GLTFLoader, renders an unlit-looking model
+        # without this.
+        return mesh.export(file_type="glb", include_normals=True)
 
     if fmt in MESH_FORMATS:
-        # trimesh uses "glb" and "dae" (collada) file types directly
+        # trimesh uses "dae" (collada) etc. file types directly
         return mesh.export(file_type=fmt)
 
     if fmt in CAD_FORMATS:

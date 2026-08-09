@@ -22,8 +22,8 @@ MANUAL STEPS (PowerShell)
 2. Install dependencies:
      pip install -r backend\requirements.txt
 
-3. Make sure the env file exists (leave MESHY_API_KEY blank to run in
-   MOCK mode, no Meshy account needed):
+3. Make sure the env file exists (leave GENERATOR=mock to run offline,
+   no fal.ai account needed):
      copy backend\.env.example backend\.env
 
 4. Run the server:
@@ -35,8 +35,8 @@ MANUAL STEPS (PowerShell)
 
 NOTES
 -----
-- MOCK mode: with no MESHY_API_KEY set (or MESHY_MOCK=1), the backend
-  fabricates a sample model instead of calling Meshy, so you can test
-  the whole pipeline offline. Add a real key and set MESHY_MOCK=0 to
-  use the actual Meshy service.
+- MOCK mode: with GENERATOR=mock, the backend fabricates a sample model
+  instead of calling fal.ai, so you can test the whole pipeline offline.
+  Set GENERATOR=fal and add a FAL_KEY (https://fal.ai/dashboard/keys) to
+  use real generation.
 - Requires Python 3.10+.

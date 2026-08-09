@@ -1,11 +1,9 @@
 /* ============================================================
    Theme tokens
-   - Palettes (heritage / harbor / grove) set the brand hue.
-   - [data-theme] sets light vs dark surfaces.
-   - --primary is for solid fills (paired with --on-primary text).
-   - --primary-fg is for text/borders sitting on the page background —
-     same as --primary in light mode, brightened in dark mode so brand
-     text stays legible against a dark page.
+   - Palettes (heritage / harbor / grove): brand hue.
+   - [data-theme]: light vs dark surfaces.
+   - --primary: solid fills, paired with --on-primary text.
+   - --primary-fg: text/borders on the page background.
    ============================================================ */
 :root{
   --on-primary:#F4EFE1;
@@ -111,10 +109,8 @@ header.site{
 .brand .mark{
   width:38px;height:38px;position:relative;flex:0 0 auto;
   display:grid;place-items:center;
-  background:var(--primary);border-radius:12px;
-  box-shadow:0 0 0 1px var(--accent), inset 0 0 0 2px var(--bg-2);
 }
-.brand .mark svg{width:24px;height:24px;color:var(--on-primary)}
+.brand .mark img{width:38px;height:38px;object-fit:contain;display:block}
 .brand .word{font-family:"Fraunces",serif;font-weight:900;font-size:20px;color:var(--primary-fg);letter-spacing:.02em;line-height:1}
 .brand .ey{display:block;font-family:"IBM Plex Mono",monospace;font-size:8.5px;letter-spacing:.34em;text-transform:uppercase;color:var(--accent);margin-top:3px}
 nav.main{display:flex;align-items:center;gap:clamp(14px,3vw,30px)}
@@ -179,6 +175,12 @@ h1.display{
 
 .hero{text-align:center;padding:clamp(10px,3vw,26px) 0 8px}
 
+.intro-points{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;margin:36px auto 0}
+.intro-point{display:flex;flex-direction:column;align-items:center;gap:8px;max-width:140px}
+.intro-point .ip-ico{width:26px;height:26px;color:var(--primary-fg)}
+.intro-point span{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.02em;color:var(--muted)}
+.intro-note{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:14px}
+
 .dropzone{
   margin:34px auto 0;max-width:560px;position:relative;
   background:var(--surface);
@@ -205,6 +207,44 @@ h1.display{
 
 .actionrow{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:26px}
 
+.mode-heading{font-family:"Fraunces",serif;font-weight:700;font-size:clamp(24px,3.5vw,34px);color:var(--primary-fg);margin:14px 0 0}
+
+/* Mode choice (step 01) — same .btn used everywhere else, just bigger */
+.mode-choice{display:flex;gap:36px;justify-content:center;flex-wrap:wrap;margin:34px auto 0}
+.mode-option{text-align:center;max-width:230px}
+.mode-btn{padding:18px 36px;font-size:14px;width:100%}
+.mode-desc{font-size:13px;color:var(--muted);margin-top:12px}
+
+/* Multi-image upload (up to 4 slots) — one cohesive panel, dropzone-styled */
+.dropzone-multi-wrap{
+  margin:34px auto 0;max-width:560px;position:relative;
+  background:var(--surface);
+  border:1.5px dashed rgb(var(--primary-rgb) / 40%);
+  border-radius:18px;
+  padding:clamp(26px,5vw,34px) 28px;
+}
+.dropzone-multi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media (max-width:560px){.dropzone-multi{grid-template-columns:repeat(2,1fr)}}
+.multi-slot{text-align:center}
+.multi-slot-label{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px}
+.multi-slot-label b{color:var(--accent);font-weight:600}
+.multi-slot-box{
+  position:relative;aspect-ratio:1/1;border-radius:14px;cursor:pointer;overflow:hidden;
+  background:var(--bg-2);border:1.5px dashed rgb(var(--primary-rgb) / 40%);
+  display:grid;place-items:center;transition:border-color .2s ease,background .2s ease;
+}
+.multi-slot-box:hover{background:var(--surface-strong);border-color:var(--primary-fg)}
+.multi-slot-box.filled{border-style:solid;border-color:var(--line)}
+.multi-slot-empty{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:8px}
+.multi-slot-empty .ms-ico{width:22px;height:22px;color:var(--primary-fg)}
+.multi-slot-thumb{width:100%;height:100%;object-fit:cover}
+.multi-slot-clear{
+  position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;
+  background:rgba(20,16,16,.65);color:#fff;border:0;cursor:pointer;font-size:13px;line-height:1;
+  display:none;align-items:center;justify-content:center;
+}
+.multi-slot-box.filled .multi-slot-clear{display:flex}
+
 /* Buttons */
 .btn{
   font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;
@@ -221,10 +261,12 @@ h1.display{
 
 /* Steps strip */
 .steps{display:flex;gap:22px;justify-content:center;margin:46px auto 0;max-width:760px;flex-wrap:wrap}
-.step{flex:1;min-width:180px;text-align:center;position:relative}
+.step{flex:1;min-width:180px;text-align:center;position:relative;opacity:.5;transition:opacity .2s ease}
 .step .n{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent);letter-spacing:.1em}
 .step h3{font-family:"Fraunces",serif;font-weight:600;font-size:17px;color:var(--primary-fg);margin:8px 0 4px}
 .step p{font-size:14px;color:var(--muted)}
+.step.current{opacity:1}
+.step.current .n{background:var(--accent);color:var(--on-primary);padding:3px 11px;border-radius:20px}
 
 .divider{display:flex;align-items:center;justify-content:center;gap:14px;margin:56px 0}
 .divider span{height:1px;flex:1;max-width:160px;background:var(--line)}
@@ -308,6 +350,9 @@ select.dd{
   background:var(--surface-strong);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;
 }
 select.dd:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* Options — opaque colors (native popup) */
+select.dd option{background:var(--bg-2);color:var(--ink)}
+select.dd optgroup{background:var(--bg-2);color:var(--muted)}
 .fmt-note{font-size:13px;color:var(--muted);margin-top:10px;font-style:italic;min-height:2.6em}
 .summary li{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:12.5px;padding:7px 0;border-bottom:1px dashed var(--line-soft)}
 .summary li:last-child{border-bottom:0}
@@ -356,6 +401,20 @@ select.dd:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .qa .ans-in code{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--brick)}
 .qa .ans-in strong{color:var(--ink);font-weight:600}
 
+/* ---------- Generation status badge (shown on About/FAQs while away from Upload) ---------- */
+.gen-status-badge{
+  position:fixed;top:78px;left:24px;z-index:50;
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg-2);border:1px solid var(--line);border-radius:999px;
+  padding:7px 14px;font-family:"IBM Plex Mono",monospace;font-size:11px;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--ink);
+  box-shadow:0 10px 24px -12px rgba(20,16,16,.4);
+}
+.gen-status-badge .gsb-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:none}
+.gen-status-badge.generating .gsb-dot{background:var(--accent);animation:pulse-dot 1.2s ease-in-out infinite}
+.gen-status-badge.done .gsb-dot{background:var(--green)}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.35}}
+
 /* ---------- Modal ---------- */
 .overlay{position:fixed;inset:0;background:rgba(20,16,16,.5);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
 .overlay.show{display:flex;animation:fade .2s ease both}
@@ -367,6 +426,23 @@ select.dd:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .modal .recap .k{color:var(--muted)}
 .modal .warnline{color:var(--brick);font-size:13.5px;margin:12px 0 4px;display:none}
 .modal .actionrow{margin-top:22px}
+
+.modal-crop{max-width:min(92vw,760px);max-height:90vh;overflow-y:auto}
+.crop-hint{color:var(--muted);font-size:13px;margin:0 0 14px}
+.crop-wrap{
+  position:relative;display:flex;justify-content:center;background:var(--near-black);
+  border-radius:18px;border:1px solid rgb(var(--accent-rgb) / 50%);box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.crop-wrap .tick{position:absolute;width:7px;height:7px;border-radius:50%;background:var(--accent);opacity:.6}
+.crop-wrap .tick.tl{top:14px;left:14px}
+.crop-wrap .tick.tr{top:14px;right:14px}
+.crop-wrap-label{
+  position:absolute;left:14px;bottom:12px;font-family:"IBM Plex Mono",monospace;
+  font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(243,238,223,.5);
+  pointer-events:none;
+}
+#cropCanvas{max-width:100%;max-height:60vh;display:block;cursor:crosshair;touch-action:none}
 
 /* Toast */
 .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg-2);padding:12px 22px;border-radius:12px;font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.04em;opacity:0;transition:opacity .2s ease,transform .2s ease;pointer-events:none;z-index:70;border:1px solid var(--accent)}

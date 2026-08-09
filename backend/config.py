@@ -1,45 +1,17 @@
-"""Configuration and limits for CONBOART.
-
-Values are read from environment variables (see .env.example). Nothing here is
-secret except the Meshy API key, which must come from the environment and must
-never be committed to source control.
-"""
+"""Configuration and limits for CONBOART. Read from environment (see .env.example)."""
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# --- Generator selection ------------------------------------------------------
-# mock  — built-in sample sphere. hf — free TRELLIS Hugging Face Space.
-# meshy — the paid Meshy API. Falls back to "mock" for any unrecognized value.
+# --- Generator selection: mock / fal — falls back to mock if unrecognized
 GENERATOR = os.getenv("GENERATOR", "mock").strip().lower()
-if GENERATOR not in {"mock", "hf", "meshy"}:
+if GENERATOR not in {"mock", "fal"}:
     GENERATOR = "mock"
 
-# --- Meshy AI ---------------------------------------------------------------
-# Get a key from https://www.meshy.ai (a free test-mode key works for wiring
-# things up without spending credits). Leave unset to run in MOCK mode.
-MESHY_API_KEY = os.getenv("MESHY_API_KEY", "")
-MESHY_BASE_URL = os.getenv("MESHY_BASE_URL", "https://api.meshy.ai")
-
-# When true, or when GENERATOR=meshy but no key is set, the backend fabricates
-# a sample model instead of calling Meshy — handy for local development.
-# Also forced on for GENERATOR=mock, even if a Meshy key happens to be set.
-MESHY_MOCK = (
-    GENERATOR == "mock"
-    or os.getenv("MESHY_MOCK", "").lower() in {"1", "true", "yes"}
-    or (GENERATOR == "meshy" and not MESHY_API_KEY)
-)
-
-# --- Hugging Face (only used when GENERATOR=hf) ------------------------------
-# Free open-source TRELLIS via a public Hugging Face Space. A token from
-# https://huggingface.co/settings/tokens gives a bigger daily quota than the
-# shared anonymous pool, but isn't required.
-HF_TOKEN = os.getenv("HF_TOKEN", "")
-HF_SPACE = os.getenv("HF_SPACE", "trellis-community/TRELLIS")
-# Only set this if auto-discovery picks the wrong endpoint for the pipeline's
-# generation step. Run `python -m backend.hf_probe` to see the options.
-HF_API_NAME = os.getenv("HF_API_NAME", "")
+# --- fal.ai (only used when GENERATOR=fal) -----------------------------------
+# Get a key from https://fal.ai/dashboard/keys.
+FAL_KEY = os.getenv("FAL_KEY", "")
 
 # --- Guard rails ------------------------------------------------------------
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
@@ -48,21 +20,14 @@ SESSION_TTL_MIN = int(os.getenv("SESSION_TTL_MIN", "30"))
 POLL_TIMEOUT_S = int(os.getenv("POLL_TIMEOUT_S", "600"))
 POLL_INTERVAL_S = float(os.getenv("POLL_INTERVAL_S", "3"))
 
-# --- CORS -------------------------------------------------------------------
-# The backend serves its own frontend, so same-origin needs no CORS at all and
-# the default is therefore "no cross-origin access". Only set this if you host
-# the frontend somewhere else; a wildcard would let any site on the internet
-# spend your Meshy credits from a visitor's browser.
+# --- CORS (only for a separately hosted frontend) ---------------------------
 # Example: ALLOWED_ORIGINS=https://conboart.example.com,https://staging.example.com
 ALLOWED_ORIGINS = [
     o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()
 ]
 
-# --- Rate limiting ----------------------------------------------------------
-# Generation costs real Meshy credits, so cap how often one client can ask.
-# In-process only: it resets on restart and is per-worker, so it protects a
-# single-instance deployment. Put a real limiter at the edge if you scale out.
-RATE_LIMIT_GENERATES = int(os.getenv("RATE_LIMIT_GENERATES", "5"))
+# --- Rate limiting (in-process, per-worker) ----------------------------------
+RATE_LIMIT_GENERATES = int(os.getenv("RATE_LIMIT_GENERATES", "0"))
 RATE_LIMIT_WINDOW_S = int(os.getenv("RATE_LIMIT_WINDOW_S", "600"))
 
 # --- Auto-scale presets (longest bounding-box dimension, in millimetres) ----

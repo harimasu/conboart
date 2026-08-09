@@ -1,10 +1,6 @@
 """Mesh processing with Trimesh: cleanup, printability check, scaling, info.
 
-Design notes:
-- Generation happens at native size. The S/M/L scale is applied (baked) only at
-  export, so the viewer can preview scale live without re-processing.
-- Uniform scaling does not change watertightness or winding, so the printability
-  result stays valid after scaling and only needs re-running after cleanup.
+Scale is baked only at export.
 """
 from __future__ import annotations
 
@@ -19,9 +15,6 @@ def load(data: bytes, file_type: str = "glb"):
     import trimesh
 
     mesh = trimesh.load(file_obj=_bytes_io(data), file_type=file_type, force="mesh")
-    # force="mesh" concatenates a scene into one Trimesh, but a file with no
-    # triangles still comes back as a PointCloud/empty geometry — every caller
-    # below assumes .faces exists, so reject it here rather than 500 later.
     if not hasattr(mesh, "faces") or len(mesh.faces) == 0:
         raise NotAMeshError("the generated file contains no triangle geometry")
     return mesh
@@ -33,25 +26,29 @@ def _bytes_io(data: bytes):
     return io.BytesIO(data)
 
 
-_PRINT_GRAY = (0.55, 0.55, 0.55, 1.0)  # RGBA 0-1, a neutral filament-like gray
+_PRINT_GRAY = (0.55, 0.55, 0.55, 1.0)  # RGBA 0-1
 
-# Cap on boundary-loop size (edge count) fan-filling will attempt to close.
-# trimesh's own docs warn a fan triangulation "may result in bad answers if
-# the holes are non-convex" — fine for a handful of edges, but AI meshes are
-# irregular, and a thin-shell part (eg. a hollow chair leg with an open
-# bottom) can have a large, jagged, non-convex opening that IS the object's
-# real boundary, not damage to repair. Fanning that produces a mess of
-# crossing sliver triangles across the whole part. Leaving a large opening
-# unfilled (honestly non-watertight) beats visually wrecking the shape.
+
+def ensure_visible_material(mesh) -> None:
+    """Give the mesh a visible material if it has no real texture, in-place."""
+    import trimesh
+
+    material = getattr(mesh.visual, "material", None)
+    if material is not None and getattr(material, "baseColorTexture", None) is not None:
+        return
+    mesh.visual = trimesh.visual.TextureVisuals(
+        material=trimesh.visual.material.PBRMaterial(
+            baseColorFactor=_PRINT_GRAY, metallicFactor=0.05, roughnessFactor=0.75
+        )
+    )
+
+
+# Max hole size (boundary edges) eligible for fan-fill
 _MAX_FILLABLE_HOLE_EDGES = 12
 
 
 def _fill_small_holes(mesh) -> None:
-    """Fan-fill only small boundary loops; leave large openings alone.
-
-    Reimplements trimesh.repair.fill_holes(mesh, use_fan=True) but skips any
-    boundary loop bigger than _MAX_FILLABLE_HOLE_EDGES — see that constant.
-    """
+    """Fan-fill boundary loops up to _MAX_FILLABLE_HOLE_EDGES; skip larger ones."""
     import networkx as nx
     import numpy as np
     from trimesh.geometry import faces_to_edges, triangulate_quads
@@ -77,27 +74,11 @@ def _fill_small_holes(mesh) -> None:
     mesh.extend_faces(new_faces)
 
 
-# Default weld tolerance as a fraction of the model's longest dimension.
-# Chair-leg-to-seat style contact gaps from AI mesh generation are usually a
-# tiny fraction of the model's overall size; this is deliberately small so it
-# bridges true near-touching contact points without measurably rounding off
-# real surface detail elsewhere.
-_WELD_TOLERANCE_FRAC = 0.01
+_WELD_TOLERANCE_FRAC = 0.01  # fraction of longest dimension treated as "touching"
 
 
 def _weld_nearby(mesh, tolerance_frac: float = _WELD_TOLERANCE_FRAC) -> None:
-    """Snap vertices from DIFFERENT connected parts within a small tolerance
-    together, in-place, to bridge near-touching contact points (eg. a chair
-    leg that doesn't quite reach the seat it was meant to join) into real
-    shared topology.
-
-    Deliberately restricted to cross-part pairs: mesh.merge_vertices() only
-    catches exact (floating-point) duplicates, not "close enough", but a
-    naive proximity merge across *all* vertices would also fuse ordinary
-    fine tessellation within a single part — points that are legitimately
-    close together as part of normal surface detail, not a gap. Only
-    vertices belonging to different connected components are candidates.
-    """
+    """Snap near-touching vertices across different parts into shared topology."""
     import numpy as np
     import trimesh
     from scipy.spatial import cKDTree
@@ -113,7 +94,7 @@ def _weld_nearby(mesh, tolerance_frac: float = _WELD_TOLERANCE_FRAC) -> None:
         mesh.face_adjacency, nodes=np.arange(len(mesh.faces))
     )
     if len(face_groups) <= 1:
-        return  # nothing separate to bridge
+        return
 
     vertex_body = np.full(len(mesh.vertices), -1, dtype=np.int64)
     for body_id, faces_idx in enumerate(face_groups):
@@ -128,8 +109,7 @@ def _weld_nearby(mesh, tolerance_frac: float = _WELD_TOLERANCE_FRAC) -> None:
     if not cross_pairs:
         return
 
-    # Union-find: group every vertex that ends up transitively close to
-    # another into one cluster, then collapse each cluster to its centroid.
+    # union-find, then collapse each cluster to its centroid
     parent = np.arange(len(mesh.vertices))
 
     def find(i):
@@ -151,26 +131,34 @@ def _weld_nearby(mesh, tolerance_frac: float = _WELD_TOLERANCE_FRAC) -> None:
             new_vertices[members] = mesh.vertices[members].mean(axis=0)
 
     mesh.vertices = new_vertices
-    mesh.merge_vertices()  # collapse the now-identical positions into shared indices
+    mesh.merge_vertices()
 
 
-def cleanup(mesh, *, weld: bool = False):
-    """Repair common issues in AI-generated meshes.
+_VOXEL_REMESH_PITCH_FRAC = 0.02  # fraction of longest dimension per voxel
 
-    Image-to-3D output is typically littered with tiny disconnected debris
-    specks around the real object and small surface gaps — the two biggest
-    reasons printability() below comes back "single_body": false or
-    "watertight": false. Discarding everything but the dominant body and then
-    hole-filling clears most of that.
 
-    weld=True additionally snaps near-touching vertices together first (see
-    _weld_nearby) to bridge separate-but-adjacent parts — eg. a chair's legs,
-    seat and backrest — into one connected solid. Off by default because it's
-    a deliberate, coarser repair a user should ask for (the "clean up model"
-    action), not something every generation silently applies.
+def _voxel_remesh(mesh, pitch_frac: float = _VOXEL_REMESH_PITCH_FRAC):
+    """Rebuild via voxelize+fill+marching_cubes — guaranteed watertight, single-body."""
+    longest = max(mesh.extents) if len(mesh.extents) else 0
+    if longest <= 0:
+        return mesh
+    try:
+        vox = mesh.voxelized(pitch=pitch_frac * longest).fill()
+        remeshed = vox.marching_cubes
+        remeshed.apply_transform(vox.transform)  # voxel-index -> world space
+    except Exception:
+        return mesh
+    if len(remeshed.faces) == 0:
+        return mesh
+    return remeshed
 
-    May return a different Trimesh object than the one passed in (the largest
-    body becomes a fresh mesh) — always use the return value, not the arg.
+
+def cleanup(mesh, *, weld: bool = False, guarantee: bool = False):
+    """Repair common AI-mesh issues: debris specks, small gaps, missing color.
+
+    weld=True: also bridges near-touching separate parts.
+    guarantee=True: falls back to _voxel_remesh if still not watertight.
+    May return a different Trimesh object — always use the return value.
     """
     import trimesh
 
@@ -182,21 +170,11 @@ def cleanup(mesh, *, weld: bool = False):
     if weld:
         _weld_nearby(mesh)
 
-    # Two passes: fan hole-filling occasionally leaves a near-zero-volume
-    # sliver of its own (a hole boundary closed with a couple of degenerate
-    # triangles that end up geometrically separate from the body once
-    # exported/reloaded). One debris-drop pass won't catch a sliver that
-    # doesn't exist until the fill runs, so repeat until it's actually stable.
+    # up to 3 passes
     for _ in range(3):
         bodies = mesh.split(only_watertight=False)
         if len(bodies) > 1:
-            # Debris specks are a handful of faces, orders of magnitude
-            # smaller than any real part — but a multi-part object (chair
-            # legs, seat, backrest as separate shells) has several bodies
-            # that are each a substantial fraction of the whole. Keeping only
-            # the single largest body would silently discard the rest of the
-            # object (a chair reduced to one leg); keep every body that isn't
-            # obviously debris instead.
+            # keep non-debris bodies (>=1% of largest, or >=8 faces)
             max_faces = max(len(b.faces) for b in bodies)
             keep = [b for b in bodies if len(b.faces) >= max(8, max_faces * 0.01)]
             mesh = trimesh.util.concatenate(keep) if len(keep) > 1 else keep[0]
@@ -205,25 +183,26 @@ def cleanup(mesh, *, weld: bool = False):
         try:
             _fill_small_holes(mesh)
         except Exception:
-            pass  # best-effort
+            pass
 
         if mesh.is_watertight and len(bodies) <= 1:
             break
 
-    # mesh_utils.load() forces a scene merge (see its docstring), which drops
-    # per-submesh materials/textures. Re-exported with no material, three.js's
-    # GLTFLoader falls back to a default *white* MeshStandardMaterial — a
-    # blown-out, hard-to-see preview. Give it back a uniform, visible gray.
-    mesh.visual = trimesh.visual.TextureVisuals(
-        material=trimesh.visual.material.PBRMaterial(
-            baseColorFactor=_PRINT_GRAY, metallicFactor=0.05, roughnessFactor=0.75
-        )
-    )
+    if guarantee and not mesh.is_watertight:
+        # per body, not globally
+        bodies = mesh.split(only_watertight=False)
+        fixed = [b if b.is_watertight else _voxel_remesh(b) for b in bodies]
+        mesh = trimesh.util.concatenate(fixed) if len(fixed) > 1 else fixed[0]
+
+    ensure_visible_material(mesh)
     return mesh
 
 
 def printability(mesh) -> dict:
-    """Read-only diagnostic. Never modifies the mesh."""
+    """Read-only diagnostic. Never modifies the mesh.
+
+    single_body is informational only, not required for verdict "ok".
+    """
     watertight = bool(mesh.is_watertight)
     winding = bool(mesh.is_winding_consistent)
     bodies = mesh.split(only_watertight=False)
@@ -236,12 +215,12 @@ def printability(mesh) -> dict:
         "single_body": single_body,
         "positive_volume": positive_volume,
     }
-    if all(checks.values()):
-        verdict = "ok"          # Ready to print
+    if watertight and winding and positive_volume:
+        verdict = "ok"
     elif watertight:
-        verdict = "warn"        # Prints, but may need attention/supports
+        verdict = "warn"
     else:
-        verdict = "fail"        # Open/non-manifold mesh
+        verdict = "fail"
     return {"verdict": verdict, "checks": checks}
 
 
@@ -258,15 +237,7 @@ def bake_scale(mesh, size: str):
 
 
 def model_info(mesh) -> dict:
-    """Measurements in the mesh's own native units — NOT millimetres.
-
-    Scale is baked at export, so nothing here has been scaled yet. The client
-    multiplies by the S/M/L factor to get mm and cm³ for display.
-
-    Do not round these: a generated mesh is typically only 1-2 units across, so
-    its raw volume is ~1e-3 of a "unit cm³". Rounding here and cubing the scale
-    factor on the client turned every volume into 0.
-    """
+    """Measurements in native units (not mm) — client scales for display."""
     return {
         "dimensions": [float(x) for x in mesh.extents],
         "triangles": int(len(mesh.faces)),

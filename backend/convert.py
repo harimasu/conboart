@@ -2,11 +2,8 @@
 
 Tiers (see docs/DESIGN-SPEC.md):
   1. Mesh formats (STL/OBJ/PLY/GLB/GLTF/OFF/DAE) — native via Trimesh.
-  2. SketchUp — we can't write .skp directly. Export DAE (or GLB) and let the
-     user Import + Save As .skp in SketchUp Pro/Studio.
-  3. CAD (STEP/IGES) — approximate. A photo-derived mesh is not parametric CAD;
-     producing STEP requires FreeCAD/OpenCASCADE and still yields a faceted
-     solid. Left unimplemented on purpose.
+  2. SketchUp — export DAE (or GLB), Import + Save As .skp in SketchUp.
+  3. CAD (STEP/IGES) — unimplemented; needs FreeCAD/OpenCASCADE.
 """
 from __future__ import annotations
 
@@ -17,8 +14,7 @@ def to_bytes(mesh, fmt: str) -> bytes:
     fmt = fmt.lower().lstrip(".")
 
     if fmt == "gltf":
-        # Without embed_buffers, trimesh splits gltf into a {json, .bin} dict.
-        # Embed so the endpoint can serve a single self-contained file.
+        # embed buffers into a single file
         return next(
             iter(
                 mesh.export(
@@ -28,11 +24,6 @@ def to_bytes(mesh, fmt: str) -> bytes:
         )
 
     if fmt == "glb":
-        # trimesh only writes a NORMAL accessor if include_normals=True is
-        # passed explicitly (or normals happen to already be cached) — a
-        # viewer that doesn't compute its own fallback normals, like this
-        # app's vendored three.js GLTFLoader, renders an unlit-looking model
-        # without this.
         return mesh.export(file_type="glb", include_normals=True)
 
     if fmt in MESH_FORMATS:

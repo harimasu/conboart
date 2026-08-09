@@ -24,15 +24,7 @@
   <div class="bar">
     <button class="brand" onclick="go('upload')" aria-label="CONBOART home">
       <span class="mark" aria-hidden="true">
-        <svg viewBox="0 0 64 64" fill="currentColor">
-          <!-- soft side-profile boar head, facing left -->
-          <path d="M9 40 Q6 34 11 32 Q11 26 17 24 Q20 15 30 15 Q40 15 45 20 L50 22 Q56 26 55 35 Q54 45 45 47 Q41 49 37 48 Q33 50 29 48 Q26 49 23 48 Q13 47 11 42 Q8 42 9 40 Z"/>
-          <path d="M43 18 Q46 7 53 13 Q52 22 43 22 Z"/>
-          <path d="M9 33 Q3 33 4 38 Q5 41 10 40 Z"/>
-          <path d="M12 45 Q9 52 14 51 Q13 47 16 46 Z"/>
-          <circle cx="33" cy="30" r="2.4" fill="var(--primary)"/>
-          <circle cx="10" cy="37" r="1.9" fill="var(--primary)"/>
-        </svg>
+        <img src="logo.png" alt="" width="38" height="38">
       </span>
       <span>
         <span class="word">CONBOART</span>
@@ -58,17 +50,71 @@
   </div>
 </header>
 
+<div class="gen-status-badge" id="genStatusBadge" style="display:none">
+  <span class="gsb-dot"></span><span id="genStatusText">Status: none</span>
+</div>
+
 <main>
 
   <!-- ================= UPLOAD PAGE ================= -->
   <section class="page" id="page-upload">
 
-    <!-- View A: drop -->
-    <div class="view" id="v-drop">
+    <!-- View: landing / intro -->
+    <div class="view" id="v-intro">
       <div class="hero">
         <span class="eyebrow">2D&nbsp;→&nbsp;3D&nbsp;·&nbsp;AI-powered</span>
         <h1 class="display">Turn any photo<br>into a 3D model.</h1>
         <p class="lede">No modeling. No software. No skills. Just upload — and get a printable 3D model.</p>
+
+        <div class="intro-points">
+          <div class="intro-point">
+            <svg class="ip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5.5-5-9.5 8"/></svg>
+            <span>Upload any clear photo</span>
+          </div>
+          <div class="diamond"></div>
+          <div class="intro-point">
+            <svg class="ip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>
+            <span>AI builds the 3D mesh</span>
+          </div>
+          <div class="diamond"></div>
+          <div class="intro-point">
+            <svg class="ip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+            <span>Export, ready to print</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" style="margin-top:32px" onclick="showView('mode')">Let's get started</button>
+        <div class="intro-note">Takes about a minute · nothing is stored</div>
+      </div>
+    </div>
+
+    <!-- View 0: choose upload mode -->
+    <div class="view" id="v-mode">
+      <div class="hero" style="padding-bottom:0">
+        <span class="eyebrow">Step 01</span>
+        <h2 class="mode-heading">How would you like to start?</h2>
+      </div>
+
+      <div class="mode-choice">
+        <div class="mode-option">
+          <button class="btn btn-primary mode-btn" onclick="chooseUploadMode('single')">Single image</button>
+          <p class="mode-desc">Fastest — one clear photo of your subject.</p>
+        </div>
+        <div class="mode-option">
+          <button class="btn btn-primary mode-btn" onclick="chooseUploadMode('multi')">Multiple images</button>
+          <p class="mode-desc">More accurate — 2-4 angles: front, back, left, right.</p>
+        </div>
+      </div>
+
+      <div class="steps" data-auto></div>
+    </div>
+
+    <!-- View A: drop -->
+    <div class="view" id="v-drop">
+      <div class="hero">
+        <span class="eyebrow">2D&nbsp;→&nbsp;3D&nbsp;·&nbsp;AI-powered</span>
+        <h1 class="display" id="dropTitle">One photo is<br>all it takes.</h1>
+        <button class="btn-link" style="margin-top:10px" onclick="showView('mode')">‹ Change upload mode</button>
       </div>
 
       <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload an image">
@@ -76,9 +122,9 @@
         <span class="corner bl"></span><span class="corner br"></span>
         <div id="dz-empty">
           <svg class="dz-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
-          <div class="dz-title">Drop an image here</div>
+          <div class="dz-title" id="dzTitle">Drop an image here</div>
           <div class="dz-sub">or browse — PNG or JPG, up to 10&nbsp;MB</div>
-          <div class="dz-hint">Best results: one clear subject, plain background, even lighting.</div>
+          <div class="dz-hint" id="dzHint">Best results: one clear subject, plain background, even lighting.</div>
         </div>
         <div id="dz-filled" class="dz-preview" style="display:none">
           <img id="dz-thumb" alt="preview">
@@ -92,16 +138,67 @@
         <input type="file" id="file" accept=".png,.jpg,.jpeg" hidden>
       </div>
 
-      <div class="actionrow">
-        <button class="btn btn-primary" id="genBtn" disabled onclick="startGenerate()">Generate model</button>
-        <button class="btn btn-ghost" onclick="loadSample()">Use a sample image</button>
+      <div class="dropzone-multi-wrap" id="dropzoneMulti" style="display:none">
+        <p class="dz-hint" style="margin-top:0;margin-bottom:20px">Front is required — add back, left and right for a more accurate model.</p>
+        <div class="dropzone-multi">
+          <div class="multi-slot" data-slot="front">
+            <span class="multi-slot-label">Front <b>(required)</b></span>
+            <div class="multi-slot-box" id="slotBox-front" onclick="triggerMultiFile('front')">
+              <img class="multi-slot-thumb" id="slotThumb-front" style="display:none" alt="">
+              <span class="multi-slot-empty" id="slotEmpty-front">
+                <svg class="ms-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+                Add photo
+              </span>
+              <button class="multi-slot-clear" onclick="event.stopPropagation();clearMultiFile('front')">✕</button>
+            </div>
+          </div>
+          <div class="multi-slot" data-slot="back">
+            <span class="multi-slot-label">Back</span>
+            <div class="multi-slot-box" id="slotBox-back" onclick="triggerMultiFile('back')">
+              <img class="multi-slot-thumb" id="slotThumb-back" style="display:none" alt="">
+              <span class="multi-slot-empty" id="slotEmpty-back">
+                <svg class="ms-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+                Add photo
+              </span>
+              <button class="multi-slot-clear" onclick="event.stopPropagation();clearMultiFile('back')">✕</button>
+            </div>
+          </div>
+          <div class="multi-slot" data-slot="left">
+            <span class="multi-slot-label">Left</span>
+            <div class="multi-slot-box" id="slotBox-left" onclick="triggerMultiFile('left')">
+              <img class="multi-slot-thumb" id="slotThumb-left" style="display:none" alt="">
+              <span class="multi-slot-empty" id="slotEmpty-left">
+                <svg class="ms-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+                Add photo
+              </span>
+              <button class="multi-slot-clear" onclick="event.stopPropagation();clearMultiFile('left')">✕</button>
+            </div>
+          </div>
+          <div class="multi-slot" data-slot="right">
+            <span class="multi-slot-label">Right</span>
+            <div class="multi-slot-box" id="slotBox-right" onclick="triggerMultiFile('right')">
+              <img class="multi-slot-thumb" id="slotThumb-right" style="display:none" alt="">
+              <span class="multi-slot-empty" id="slotEmpty-right">
+                <svg class="ms-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+                Add photo
+              </span>
+              <button class="multi-slot-clear" onclick="event.stopPropagation();clearMultiFile('right')">✕</button>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="fileMulti-front" accept=".png,.jpg,.jpeg" hidden>
+        <input type="file" id="fileMulti-back" accept=".png,.jpg,.jpeg" hidden>
+        <input type="file" id="fileMulti-left" accept=".png,.jpg,.jpeg" hidden>
+        <input type="file" id="fileMulti-right" accept=".png,.jpg,.jpeg" hidden>
       </div>
 
-      <div class="steps">
-        <div class="step"><div class="n">01</div><h3>Upload</h3><p>Drop in a clear photo of your subject.</p></div>
-        <div class="step"><div class="n">02</div><h3>Review &amp; size</h3><p>Inspect the model, set S / M / L, check printability.</p></div>
-        <div class="step"><div class="n">03</div><h3>Export</h3><p>Download for printing or import into SketchUp.</p></div>
+      <div class="actionrow">
+        <button class="btn btn-primary" id="genBtn" disabled onclick="startGenerate()">Generate model</button>
+        <button class="btn btn-ghost" id="selectAreaBtn" onclick="openCropModal()">Select area</button>
+        <button class="btn btn-ghost" id="sampleBtn" onclick="loadSample()">Use sample image</button>
       </div>
+
+      <div class="steps" data-auto></div>
     </div>
 
     <!-- View B: generating -->
@@ -109,14 +206,15 @@
       <div class="generating">
         <div class="crest-load"><span class="ring"></span><b></b></div>
         <h2>Generating…</h2>
-        <div class="gen-status" id="genStatus">Sending to Meshy…</div>
+        <div class="gen-status" id="genStatus">Sending to the generator…</div>
         <div class="gen-note">This usually takes about a minute. Keep this tab open.</div>
+        <button class="btn btn-ghost" style="margin-top:20px" onclick="cancelGenerate()">Cancel generation</button>
       </div>
     </div>
 
     <!-- View C: viewer -->
     <div class="view" id="v-viewer">
-      <div class="panel-head"><span class="num">02</span><h2>Review &amp; size</h2><button class="btn-link restart" onclick="resetForNewUpload()">↺ Upload a different image</button></div>
+      <div class="panel-head"><span class="num">03</span><h2>Review &amp; size</h2><button class="btn-link restart" onclick="resetForNewUpload()">↺ Upload a different image</button></div>
       <div class="work">
         <div class="stage" id="stage">
           <span class="tick tl"></span><span class="tick tr"></span>
@@ -156,14 +254,16 @@
             </ul>
           </div>
           <button class="btn btn-ghost" id="cleanBtn" onclick="cleanUp()">Clean up model</button>
+          <button class="btn btn-ghost" id="retryBtn" onclick="retryGenerate()">↻ Retry generation</button>
           <button class="btn btn-primary" onclick="openExportModal()">Export…</button>
         </div>
       </div>
+      <div class="steps" data-auto></div>
     </div>
 
     <!-- View D: export -->
     <div class="view" id="v-export">
-      <div class="panel-head"><span class="num">03</span><h2>Export &amp; convert</h2></div>
+      <div class="panel-head"><span class="num">04</span><h2>Export &amp; convert</h2></div>
       <div class="export-grid">
         <div class="card">
           <div class="fld">
@@ -203,6 +303,7 @@
           <button class="btn btn-ghost" onclick="resetForNewUpload()">Convert another image</button>
         </div>
       </div>
+      <div class="steps" data-auto></div>
     </div>
 
     <!-- Empty / re-entry -->
@@ -227,7 +328,7 @@
 
       <div class="about-block">
         <div class="ab-label">The study</div>
-        <p class="ab-title">Design and Development of a Web-Based 2D Image to 3D Model Generation System Using Artificial Intelligence for 3D Printing</p>
+        <p class="ab-title">Design and Development of a Web-Based 2D Image to 3D Model Generation System Using Artificial Intelligence</p>
         <p class="ab-sub">School of Computer Studies&nbsp;·&nbsp;BS Computer Science<br>City College of Tagaytay</p>
       </div>
 
@@ -254,7 +355,7 @@
         <div class="ab-label">Built with</div>
         <div class="credits">
           <span class="chip-c">Python · FastAPI</span>
-          <span class="chip-c">Meshy AI</span>
+          <span class="chip-c">fal.ai · Hunyuan3D</span>
           <span class="chip-c">Trimesh</span>
           <span class="chip-c">Three.js</span>
         </div>
@@ -310,7 +411,7 @@
       <div class="qa">
         <button onclick="toggleQA(this)">Is it free?<span class="plus">+</span></button>
         <div class="ans"><div class="ans-in">
-          <p>Generation runs on the Meshy AI service, which has usage limits depending on the plan in use. [Add your current limits here once you've picked a plan.]</p>
+          <p>Generation runs on fal.ai (Hunyuan3D), which is pay-as-you-go — usage limits depend on available credits. [Add your current limits here once you've picked a plan.]</p>
         </div></div>
       </div>
     </div>
@@ -338,6 +439,25 @@
     <div class="actionrow">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
       <button class="btn btn-primary" onclick="confirmExport()">Confirm export</button>
+    </div>
+  </div>
+</div>
+
+<!-- Select-area (crop) modal -->
+<div class="overlay" id="cropOverlay">
+  <div class="modal modal-crop" role="dialog" aria-modal="true" aria-labelledby="cropTitle">
+    <span class="dm"></span>
+    <h3 id="cropTitle">Select the area to generate</h3>
+    <p class="crop-hint">Drag a box around just the subject — the model only sees what's inside it, so background clutter or unwanted parts outside the box are ignored.</p>
+    <div class="crop-wrap">
+      <span class="tick tl"></span><span class="tick tr"></span>
+      <canvas id="cropCanvas"></canvas>
+      <span class="crop-wrap-label">drag to select</span>
+    </div>
+    <div class="actionrow">
+      <button class="btn btn-ghost" onclick="closeCropModal()">Cancel</button>
+      <button class="btn btn-ghost" onclick="resetCropSelection()">Reset selection</button>
+      <button class="btn btn-primary" id="cropConfirmBtn" disabled onclick="confirmCrop()">Use this area</button>
     </div>
   </div>
 </div>
@@ -379,16 +499,33 @@ function go(p){
     if(nav) nav.setAttribute('aria-current', x===p?'page':'false');
   });
   window.scrollTo({top:0,behavior:'smooth'});
-  if(p==='upload' && !state.hasModel && curView!=='drop') showView('drop');
+  if(p==='upload' && !state.hasModel && !state.jobActive && curView!=='mode' && curView!=='drop') showView('mode');
+  // The viewer's canvas can get initialized (or a completed generation can
+  // land) while #page-upload is display:none — eg. generation finishes
+  // while on another tab — leaving it sized 0x0 with nothing to ever fix it.
+  // Resize once the container is actually visible again.
+  if(p==='upload' && curView==='viewer' && viewerReady){ onResize(); renderer.render(scene,camera); }
+  updateGenStatusBadge(p);
 }
 
 /* ---------------- Upload views ---------------- */
-let curView='drop';
-const views=['drop','loading','viewer','export','empty'];
+let curView='intro';
+const views=['intro','mode','drop','loading','viewer','export','empty'];
+const STEPS=[
+  {view:'mode', n:'01', title:'Choose mode', desc:'Single photo, or several angles for accuracy.'},
+  {view:'drop', n:'02', title:'Upload', desc:'Drop in a clear photo of your subject.'},
+  {view:'viewer', n:'03', title:'Review &amp; size', desc:'Inspect the model, set S / M / L, check printability.'},
+  {view:'export', n:'04', title:'Export', desc:'Download for printing or import into SketchUp.'},
+];
+function updateStepsBars(){
+  const html=STEPS.map(s=>'<div class="step'+(s.view===curView?' current':'')+'"><div class="n">'+s.n+'</div><h3>'+s.title+'</h3><p>'+s.desc+'</p></div>').join('');
+  document.querySelectorAll('.steps[data-auto]').forEach(el=>{ el.innerHTML=html; });
+}
 function showView(v){
   curView=v;
   views.forEach(x=>document.getElementById('v-'+x).classList.toggle('active', x===v));
   if(v==='viewer'){ ensureViewer(); }
+  updateStepsBars();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -396,7 +533,7 @@ function showView(v){
 // baked at export, so the client converts for display. Null until a real model
 // arrives; nothing here is a stand-in number.
 const state={
-  file:null, size:'M', mm:100, verdict:null, hasModel:false, jobActive:false,
+  mode:'single', file:null, files:{}, size:'M', mm:100, verdict:null, hasModel:false, jobActive:false,
   jobId:null, nativeDims:null, nativeVolume:null, triangles:null
 };
 
@@ -483,8 +620,196 @@ function sampleSVG(){
   return '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="#E8E1CC"/><circle cx="32" cy="24" r="12" fill="#9C3C20"/><rect x="20" y="34" width="24" height="24" rx="4" fill="#6D1214"/></svg>';
 }
 
+/* ---------------- Upload mode (single vs multi image) ---------------- */
+function chooseUploadMode(mode){
+  state.mode=mode;
+  clearFile();
+  clearMultiFile('front'); clearMultiFile('back'); clearMultiFile('left'); clearMultiFile('right');
+  document.getElementById('dropzone').style.display=mode==='single'?'':'none';
+  document.getElementById('dropzoneMulti').style.display=mode==='multi'?'block':'none';
+  document.getElementById('selectAreaBtn').style.display=mode==='single'?'':'none';
+  document.getElementById('sampleBtn').style.display=mode==='single'?'':'none';
+  document.getElementById('dropTitle').innerHTML=mode==='single'
+    ?'One photo is<br>all it takes.'
+    :'A few angles make<br>a much better model.';
+  document.getElementById('dzTitle').textContent=mode==='single'
+    ?'Drop your image here'
+    :'Drop an image here';
+  document.getElementById('dzHint').textContent=mode==='single'
+    ?'One clear photo works best — plain background, even lighting.'
+    :'Best results: one clear subject, plain background, even lighting.';
+  genBtn.disabled=true;
+  showView('drop');
+}
+
+/* ---------------- Multi-image slots (front required, back/left/right optional) ---------------- */
+const MULTI_SLOTS=['front','back','left','right'];
+MULTI_SLOTS.forEach(slot=>{
+  document.getElementById('fileMulti-'+slot).addEventListener('change',e=>{
+    if(e.target.files[0]) handleMultiFile(slot, e.target.files[0]);
+  });
+});
+function triggerMultiFile(slot){
+  document.getElementById('fileMulti-'+slot).click();
+}
+function handleMultiFile(slot, f){
+  const okType=/\.(png|jpe?g)$/i.test(f.name);
+  if(!okType){ toast('That file isn’t a PNG or JPG.'); return; }
+  if(f.size>MAX){ toast('That file is over 10 MB.'); return; }
+  state.files[slot]=f;
+  const url=URL.createObjectURL(f);
+  document.getElementById('slotThumb-'+slot).src=url;
+  document.getElementById('slotThumb-'+slot).style.display='block';
+  document.getElementById('slotEmpty-'+slot).style.display='none';
+  document.getElementById('slotBox-'+slot).classList.add('filled');
+  updateMultiGenBtn();
+}
+function clearMultiFile(slot){
+  delete state.files[slot];
+  document.getElementById('fileMulti-'+slot).value='';
+  document.getElementById('slotThumb-'+slot).style.display='none';
+  document.getElementById('slotThumb-'+slot).src='';
+  document.getElementById('slotEmpty-'+slot).style.display='block';
+  document.getElementById('slotBox-'+slot).classList.remove('filled');
+  updateMultiGenBtn();
+}
+function updateMultiGenBtn(){
+  if(state.mode==='multi') genBtn.disabled=!state.files.front;
+}
+
+/* ---------------- Select area (crop before generating) ---------------- */
+// Lets the user box out just the subject before it's sent for generation,
+// so the model isn't guessing from background clutter or unwanted parts.
+let cropImg=null, cropDisplayScale=1, cropRect=null, cropDragging=false, cropStart=null;
+
+async function openCropModal(){
+  if(!state.file){ toast('Upload an image first'); return; }
+  const url=URL.createObjectURL(state.file);
+  const img=new Image();
+  try{
+    await new Promise((resolve,reject)=>{ img.onload=resolve; img.onerror=reject; img.src=url; });
+  }catch(e){ toast('Could not open that image for selection'); return; }
+  URL.revokeObjectURL(url);
+  cropImg=img;
+  fitCropCanvas();
+  document.getElementById('cropOverlay').classList.add('show');
+}
+function closeCropModal(){
+  document.getElementById('cropOverlay').classList.remove('show');
+}
+// Sizes the canvas to fit whatever image + whatever viewport, matching the
+// same box .modal-crop/#cropCanvas's CSS constrains itself to (see style.css)
+// so the internal resolution isn't blurrier or wastefully bigger than shown.
+function fitCropCanvas(){
+  if(!cropImg) return;
+  const canvas=document.getElementById('cropCanvas');
+  const maxW=Math.min(window.innerWidth*0.92,760)-56; // .modal-crop width minus its padding
+  const maxH=window.innerHeight*0.6;
+  const scale=Math.min(1, maxW/cropImg.naturalWidth, maxH/cropImg.naturalHeight);
+  canvas.width=Math.max(1,Math.round(cropImg.naturalWidth*scale));
+  canvas.height=Math.max(1,Math.round(cropImg.naturalHeight*scale));
+  cropDisplayScale=cropImg.naturalWidth/canvas.width; // native px per display px
+  cropRect=null;
+  document.getElementById('cropConfirmBtn').disabled=true;
+  drawCrop();
+}
+window.addEventListener('resize',()=>{
+  if(document.getElementById('cropOverlay').classList.contains('show')) fitCropCanvas();
+});
+function drawCrop(){
+  const canvas=document.getElementById('cropCanvas');
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(cropImg,0,0,canvas.width,canvas.height);
+  if(!cropRect) return;
+  const {x,y,w,h}=cropRect;
+  ctx.fillStyle='rgba(0,0,0,.55)';
+  ctx.fillRect(0,0,canvas.width,y);
+  ctx.fillRect(0,y+h,canvas.width,canvas.height-y-h);
+  ctx.fillRect(0,y,x,h);
+  ctx.fillRect(x+w,y,canvas.width-x-w,h);
+  ctx.strokeStyle='#fff'; ctx.lineWidth=2;
+  ctx.strokeRect(x+1,y+1,Math.max(0,w-2),Math.max(0,h-2));
+}
+function cropPointerPos(e){
+  const canvas=document.getElementById('cropCanvas');
+  const r=canvas.getBoundingClientRect();
+  return {
+    x:Math.max(0,Math.min(canvas.width,(e.clientX-r.left)*(canvas.width/r.width))),
+    y:Math.max(0,Math.min(canvas.height,(e.clientY-r.top)*(canvas.height/r.height)))
+  };
+}
+(function initCropCanvas(){
+  const canvas=document.getElementById('cropCanvas');
+  canvas.addEventListener('pointerdown',e=>{
+    cropStart=cropPointerPos(e); cropDragging=true;
+    canvas.setPointerCapture(e.pointerId);
+    cropRect={x:cropStart.x,y:cropStart.y,w:0,h:0};
+    document.getElementById('cropConfirmBtn').disabled=true;
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if(!cropDragging) return;
+    const p=cropPointerPos(e);
+    cropRect={
+      x:Math.min(cropStart.x,p.x), y:Math.min(cropStart.y,p.y),
+      w:Math.abs(p.x-cropStart.x), h:Math.abs(p.y-cropStart.y)
+    };
+    drawCrop();
+  });
+  canvas.addEventListener('pointerup',()=>{
+    cropDragging=false;
+    const big=cropRect && cropRect.w>8 && cropRect.h>8;
+    document.getElementById('cropConfirmBtn').disabled=!big;
+    if(!big){ cropRect=null; drawCrop(); }
+  });
+})();
+function resetCropSelection(){
+  cropRect=null;
+  document.getElementById('cropConfirmBtn').disabled=true;
+  drawCrop();
+}
+async function confirmCrop(){
+  if(!cropRect||!cropImg) return;
+  const nx=Math.round(cropRect.x*cropDisplayScale);
+  const ny=Math.round(cropRect.y*cropDisplayScale);
+  const nw=Math.round(cropRect.w*cropDisplayScale);
+  const nh=Math.round(cropRect.h*cropDisplayScale);
+
+  const out=document.createElement('canvas');
+  out.width=nw; out.height=nh;
+  out.getContext('2d').drawImage(cropImg, nx, ny, nw, nh, 0, 0, nw, nh);
+
+  const mime=state.file.type||'image/png';
+  const blob=await new Promise(resolve=>out.toBlob(resolve, mime));
+  const croppedFile=new File([blob], 'cropped-'+state.file.name, {type:mime});
+  state.file=croppedFile;
+
+  document.getElementById('dz-thumb').src=out.toDataURL(mime);
+  document.getElementById('dz-name').textContent=croppedFile.name;
+  document.getElementById('dz-meta').textContent=(croppedFile.size/1024/1024).toFixed(1)+' MB · area selected';
+
+  closeCropModal();
+  toast('Selection applied — only that area will be sent to generate');
+}
+document.getElementById('cropOverlay').addEventListener('click',e=>{if(e.target.id==='cropOverlay')closeCropModal();});
+
 /* ---------------- Generate ---------------- */
-const statuses=['Sending to Meshy…','Reconstructing geometry…','Building the mesh…','Running printability check…','Almost there…'];
+const statuses=['Reconstructing geometry…','Building the mesh…','Running printability check…','Almost there…'];
+let genAbortController=null;
+
+// Status badge shown top-left on other tabs while away from Upload, so
+// leaving to check About/FAQs doesn't need a confirm-to-leave warning.
+function updateGenStatusBadge(activePage){
+  const badge=document.getElementById('genStatusBadge');
+  const text=document.getElementById('genStatusText');
+  const onUpload=activePage ? activePage==='upload' : document.getElementById('page-upload').classList.contains('active');
+  let status='none', label='Status: none';
+  if(state.jobActive){ status='generating'; label='Status: generating'; }
+  else if(state.hasModel){ status='done'; label='Status: done'; }
+  badge.className='gen-status-badge'+(status!=='none'?' '+status:'');
+  text.textContent=label;
+  badge.style.display=onUpload?'none':'flex';
+}
 
 function fileToDataURL(file){
   return new Promise((resolve,reject)=>{
@@ -495,22 +820,40 @@ function fileToDataURL(file){
   });
 }
 
+async function buildImagesPayload(){
+  if(state.mode==='multi'){
+    const entries=[];
+    for(const slot of MULTI_SLOTS){
+      const f=state.files[slot];
+      if(!f) continue;
+      const dataUrl=await fileToDataURL(f);
+      entries.push({image_base64:dataUrl, mime:f.type||'image/png', slot});
+    }
+    return entries;
+  }
+  const dataUrl=await fileToDataURL(state.file);
+  return [{image_base64:dataUrl, mime:state.file.type||'image/png', slot:'front'}];
+}
+
 async function startGenerate(){
-  if(state.jobActive || !state.file) return;   // one active job per session
+  const hasInput=state.mode==='multi' ? !!state.files.front : !!state.file;
+  if(state.jobActive || !hasInput) return;   // one active job per session
   state.jobActive=true;
+  updateGenStatusBadge();
   genBtn.disabled=true;
   showView('loading');
   const el=document.getElementById('genStatus');
   let i=0; el.textContent=statuses[0];
   const iv=setInterval(()=>{ i=(i+1)%statuses.length; el.textContent=statuses[i]; },1400);
+  genAbortController=new AbortController();
 
   try{
-    const dataUrl=await fileToDataURL(state.file);
-    const mime=state.file.type||'image/png';
+    const images=await buildImagesPayload();
     const r=await fetch('/api/generate',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({image_base64:dataUrl, mime})
+      body:JSON.stringify({images}),
+      signal:genAbortController.signal
     });
     if(!r.ok) throw new Error(await apiErrorMessage(r));
     const data=await r.json();
@@ -528,15 +871,32 @@ async function startGenerate(){
     state.jobActive=false;
     genBtn.disabled=false;
     state.hasModel=true;
+    updateGenStatusBadge();
     showView('viewer');
     updateInfoPanel();
   }catch(e){
     clearInterval(iv);
     state.jobActive=false;
     genBtn.disabled=false;
-    toast('Generation failed: '+e.message);
+    updateGenStatusBadge();
+    if(e.name==='AbortError'){
+      toast('Generation cancelled');
+    }else{
+      toast('Generation failed: '+e.message);
+    }
     showView('drop');
   }
+}
+
+function cancelGenerate(){
+  if(!state.jobActive || !genAbortController) return;
+  genAbortController.abort(); // stops our wait; the AbortError path in startGenerate() resets state
+}
+
+function retryGenerate(){
+  const hasInput=state.mode==='multi' ? !!state.files.front : !!state.file;
+  if(state.jobActive || !hasInput) return;
+  startGenerate(); // re-submits the same image(s) (or cropped selection, in single mode) as a fresh job
 }
 
 function renderPrintability(report){
@@ -574,8 +934,7 @@ function renderPrintabilitySummary(){
   el.style.color=v.color;
 }
 
-/* The API reports native-unit measurements — scale is baked at export — so the
-   client converts: longest axis becomes `target` mm, everything else follows. */
+/* Converts native-unit dims/volume to target mm scale */
 function computeScaledStats(target){
   const dims=(state.nativeDims&&state.nativeDims.length===3)?state.nativeDims:null;
   if(!dims) return {dims:null, vol:null};
@@ -632,7 +991,11 @@ async function cleanUp(){
       if(viewerReady) loadMeshFromBuffer(buf);
     }catch(e){ console.error(e); }
     btn.textContent='Cleaned ✓';
-    toast('Model cleaned · printability re-checked');
+    if(data.unprintable){
+      alert('This image could not generate a proper printable model. Try a different image or angle.');
+    }else{
+      toast('Model cleaned · printability re-checked');
+    }
   }catch(e){
     btn.textContent='Clean up model';
     toast('Cleanup failed: '+e.message);
@@ -656,7 +1019,7 @@ function openExportModal(){
 function closeModal(){document.getElementById('overlay').classList.remove('show');}
 function confirmExport(){closeModal();showView('export');fmtNote();}
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCropModal();}});
 
 /* ---------------- Format note + download ---------------- */
 function fmtNote(){
@@ -694,8 +1057,9 @@ async function downloadFile(){
   }
 }
 function resetForNewUpload(){
-  // clear file + model state and return to the upload step
+  // clear file + model state and return to the upload step (same mode as before)
   clearFile();
+  MULTI_SLOTS.forEach(clearMultiFile);
   state.hasModel=false; state.jobActive=false; state.size='M'; state.mm=100;
   state.jobId=null; state.nativeDims=null; state.nativeVolume=null;
   state.triangles=null; state.verdict=null;
@@ -704,6 +1068,7 @@ function resetForNewUpload(){
   if(mesh){ scene.remove(mesh); mesh=null; }
   document.querySelectorAll('#scale button').forEach(x=>x.classList.toggle('on', x.dataset.size==='M'));
   document.getElementById('dlStatus').style.display='none';
+  updateGenStatusBadge();
   showView('drop');
 }
 
@@ -759,11 +1124,7 @@ function initViewer(){
   scene.add(new THREE.AmbientLight(0x6d4a3a,.55));
 
   if(modelBuffer){ loadMeshFromBuffer(modelBuffer); } else { addPlaceholderMesh(); }
-  // Paint now rather than waiting on the first animate() tick — see the
-  // comment in loadMeshFromBuffer for why that tick isn't guaranteed to be
-  // prompt. Harmless no-op if modelBuffer's async parse hasn't resolved yet;
-  // that path paints itself once it does.
-  renderer.render(scene,camera);
+  renderer.render(scene,camera); // paint now; no-op if modelBuffer's parse hasn't resolved yet
 
   addOrbit(stage);
   viewerReady=true;
@@ -787,21 +1148,11 @@ function loadMeshFromBuffer(buffer){
     const maxDim=Math.max(size.x,size.y,size.z)||1;
     const scaleFactor=1.9/maxDim;
     obj.scale.setScalar(scaleFactor);
-    // Three.js composes local-to-world as position + scale*localPoint, i.e.
-    // scale is applied BEFORE translation — so the recentering offset must be
-    // scaled too, or it's not compensated by the scale-down at all. For a
-    // model whose native bounding box is small this rounding error is easy
-    // to miss (still roughly on-screen); for one with large native
-    // coordinates it pushes the model dozens of units from the origin,
-    // completely outside the camera frustum (renders 0 triangles, no error).
+    // scale is applied before translation, so the recentering offset needs scaling too
     obj.position.copy(center).multiplyScalar(-scaleFactor);
     scene.add(obj);
     mesh=obj;
-    // Paint immediately rather than waiting on the next animate() tick —
-    // requestAnimationFrame can be delayed or throttled (backgrounded tab,
-    // embedded webview, etc.), which otherwise leaves the canvas showing
-    // nothing until whenever the browser next decides to run it.
-    renderer.render(scene,camera);
+    renderer.render(scene,camera); // paint now, don't wait on the next animate() tick
   },(err)=>{
     console.error(err);
     toast('Could not load the model preview');
@@ -813,7 +1164,7 @@ function addOrbit(stage){
   stage.addEventListener('pointerdown',e=>{dragging=true;autoRot=false;lx=e.clientX;ly=e.clientY;stage.setPointerCapture(e.pointerId);});
   stage.addEventListener('pointermove',e=>{
     if(!dragging)return;
-    rotY+=(e.clientX-lx)*0.008; rotX+=(e.clientY-ly)*0.008;
+    rotY-=(e.clientX-lx)*0.008; rotX+=(e.clientY-ly)*0.008;
     rotX=Math.max(-1.2,Math.min(1.2,rotX));
     lx=e.clientX;ly=e.clientY;
   });
@@ -842,7 +1193,7 @@ function onResize(){
 
 /* ---------------- Init ---------------- */
 go('upload');
-showView('drop');
+showView('intro');
 fmtNote();
 </script>
 </body>

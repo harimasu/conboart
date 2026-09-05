@@ -25,14 +25,14 @@
   --primary:#1F3A63;
   --primary-rgb:31 58 99;
   --primary-fg:var(--primary);
-  --accent:#C59230;
+  --accent:#9b30c5;
   --accent-rgb:197 146 48;
 }
 [data-palette="grove"]{
   --primary:#2F5233;
   --primary-rgb:47 82 51;
   --primary-fg:var(--primary);
-  --accent:#C59230;
+  --accent:#30c5c5;
   --accent-rgb:197 146 48;
 }
 

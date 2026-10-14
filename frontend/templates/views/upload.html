@@ -1,0 +1,19 @@
+<!-- View: upload (single.html or multi.html, picked in mode.html) -->
+<div class="view" id="v-drop">
+  <div class="hero">
+    <span class="eyebrow">2D&nbsp;→&nbsp;3D&nbsp;·&nbsp;AI-powered</span>
+    <h1 class="display" id="dropTitle">One photo is<br>all it takes.</h1>
+    <button class="btn-link" style="margin-top:10px" onclick="showView('mode')">‹ Change upload mode</button>
+  </div>
+
+  {% include "views/single.html" %}
+  {% include "views/multi.html" %}
+
+  <div class="actionrow">
+    <button class="btn btn-primary" id="genBtn" disabled onclick="startGenerate()">Generate model</button>
+    <button class="btn btn-ghost" id="selectAreaBtn" onclick="openCropModal()">Select area</button>
+    <button class="btn btn-ghost" id="sampleBtn" onclick="loadSample()">Use sample image</button>
+  </div>
+
+  <div class="steps" data-auto></div>
+</div>

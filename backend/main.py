@@ -20,8 +20,9 @@ from tempfile import mkdtemp
 
 from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 from . import convert, fal_client, mesh_utils, mock_client
 from .config import (
@@ -37,6 +38,9 @@ log = logging.getLogger(__name__)
 
 _GENERATOR = {"mock": mock_client, "fal": fal_client}[GENERATOR]
 _GENERATOR_ERRORS = (mock_client.MockError, fal_client.FalError)
+
+FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
+templates = Jinja2Templates(directory=FRONTEND / "templates")
 
 app = FastAPI(title="CONBOART", version="0.1.0")
 
@@ -214,6 +218,12 @@ def convert_endpoint(job_id: str, format: str = "stl", scale: str = "M"):
     return FileResponse(out, filename=f"conboart-model.{ext}")
 
 
-# --- Serve the frontend (mount last so /api/* wins) -------------------------
-FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
-app.mount("/", StaticFiles(directory=FRONTEND, html=True), name="frontend")
+# --- Frontend ----------------------------------------------------------------
+@app.get("/", response_class=HTMLResponse)
+def index(request: Request):
+    return templates.TemplateResponse(request, "index.html")
+
+
+# Serve everything else (style.css, js/, vendor/, images) as static files.
+# Mounted last so /api/* and the explicit "/" route above win first.
+app.mount("/", StaticFiles(directory=FRONTEND), name="frontend")

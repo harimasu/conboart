@@ -1,0 +1,44 @@
+<!-- View D: export -->
+<div class="view" id="v-export">
+  <div class="panel-head"><span class="num">04</span><h2>Export &amp; convert</h2></div>
+  <div class="export-grid">
+    <div class="card">
+      <div class="fld">
+        <label for="fmt">Choose a format</label>
+        <select class="dd" id="fmt" onchange="fmtNote()">
+          <optgroup label="Print &amp; mesh">
+            <option value="stl" data-note="STL — the standard for 3D printing. Geometry only, no color.">STL — 3D printing</option>
+            <option value="glb" data-note="GLB — compact, keeps color/texture. Also imports natively into SketchUp.">GLB</option>
+            <option value="ply">PLY</option>
+            <option value="obj" data-note="OBJ — widely supported, but SketchUp needs a plugin to import it.">OBJ</option>
+          </optgroup>
+          <optgroup label="For SketchUp (Pro / Studio)">
+            <option value="dae" data-note="DAE (Collada) — recommended for SketchUp. Import it, then File → Save As → .skp. Keeps materials.">DAE (Collada) — for SketchUp ★</option>
+          </optgroup>
+          <optgroup label="CAD — approximate (imports as faceted solid)">
+            <option value="step" data-note="STEP — comes in as a faceted solid, not editable parametric CAD. Fine for reference.">STEP</option>
+            <option value="iges" data-note="IGES — comes in as a faceted solid, not editable parametric CAD.">IGES</option>
+          </optgroup>
+        </select>
+        <p class="fmt-note" id="fmtNote">STL — the standard for 3D printing. Geometry only, no color.</p>
+        <button class="btn-link" onclick="go('faqs')">Which format should I pick?</button>
+      </div>
+    </div>
+    <div class="side">
+      <div class="card">
+        <h4>Summary</h4>
+        <ul class="summary info">
+          <li><span class="k">Size</span><span class="v" id="sSize">Medium · 100 mm</span></li>
+          <li><span class="k">Dimensions</span><span class="v" id="sDim">—</span></li>
+          <li><span class="k">Printability</span><span class="v" id="sPrint">—</span></li>
+          <li><span class="k">File</span><span class="v" id="sFile">model.stl</span></li>
+        </ul>
+      </div>
+      <div id="dlStatus" class="dl-msg" style="display:none"></div>
+      <button class="btn btn-primary" id="dlBtn" onclick="downloadFile()">Download</button>
+      <button class="btn btn-ghost" onclick="showView('viewer')">Back to viewer</button>
+      <button class="btn btn-ghost" onclick="resetForNewUpload()">Convert another image</button>
+    </div>
+  </div>
+  <div class="steps" data-auto></div>
+</div>

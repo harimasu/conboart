@@ -1,0 +1,48 @@
+<!-- View C: viewer -->
+<div class="view" id="v-viewer">
+  <div class="panel-head"><span class="num">03</span><h2>Review &amp; size</h2><button class="btn-link restart" onclick="resetForNewUpload()">↺ Upload a different image</button></div>
+  <div class="work">
+    <div class="stage" id="stage">
+      <span class="tick tl"></span><span class="tick tr"></span>
+      <span class="tick bl"></span><span class="tick br"></span>
+      <span class="stage-label">Preview · drag to orbit · scroll to zoom</span>
+      <span class="stage-hint" id="stageScale">Medium · 100 mm</span>
+    </div>
+    <div class="side">
+      <div class="card">
+        <h4>Auto scale</h4>
+        <div class="scale" id="scale">
+          <button data-size="S" data-mm="50"><span class="sl">S</span><span class="sm">~50 mm</span></button>
+          <button data-size="M" data-mm="100" class="on"><span class="sl">M</span><span class="sm">~100 mm</span></button>
+          <button data-size="L" data-mm="150"><span class="sl">L</span><span class="sm">~150 mm</span></button>
+        </div>
+      </div>
+      <div class="card">
+        <h4>Model info</h4>
+        <ul class="info">
+          <li><span class="k">Dimensions</span><span class="v" id="iDim">—</span></li>
+          <li><span class="k">Triangles</span><span class="v" id="iTri">—</span></li>
+          <li><span class="k">Format</span><span class="v">GLB (native)</span></li>
+          <li><span class="k">Volume</span><span class="v" id="iVol">—</span></li>
+        </ul>
+      </div>
+      <div class="card" id="printCard">
+        <h4>Printability</h4>
+        <div class="print-status">
+          <span class="print-badge ok" id="pBadge">✓</span>
+          <span class="print-verdict ok" id="pVerdict">Ready to print</span>
+        </div>
+        <ul class="checks" id="pChecks">
+          <li><span class="mk">✓</span> Watertight — no holes</li>
+          <li><span class="mk">✓</span> Consistent surface normals</li>
+          <li><span class="mk">✓</span> Single connected body</li>
+          <li><span class="mk">✓</span> Valid, positive volume</li>
+        </ul>
+      </div>
+      <button class="btn btn-ghost" id="cleanBtn" onclick="cleanUp()">Clean up model</button>
+      <button class="btn btn-ghost" id="retryBtn" onclick="retryGenerate()">↻ Retry generation</button>
+      <button class="btn btn-primary" onclick="openExportModal()">Export…</button>
+    </div>
+  </div>
+  <div class="steps" data-auto></div>
+</div>

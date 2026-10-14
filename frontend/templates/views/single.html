@@ -1,0 +1,20 @@
+<div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload an image">
+  <span class="corner tl"></span><span class="corner tr"></span>
+  <span class="corner bl"></span><span class="corner br"></span>
+  <div id="dz-empty">
+    <svg class="dz-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+    <div class="dz-title" id="dzTitle">Drop an image here</div>
+    <div class="dz-sub">or browse — PNG or JPG, up to 10&nbsp;MB</div>
+    <div class="dz-hint" id="dzHint">Best results: one clear subject, plain background, even lighting.</div>
+  </div>
+  <div id="dz-filled" class="dz-preview" style="display:none">
+    <img id="dz-thumb" alt="preview">
+    <div>
+      <div class="dz-fname" id="dz-name">image.png</div>
+      <div class="dz-fmeta" id="dz-meta">— · ready</div>
+      <button class="btn-link" style="margin-top:6px" onclick="event.stopPropagation();clearFile()">Choose a different image</button>
+    </div>
+  </div>
+  <div class="dz-error" id="dz-error"></div>
+  <input type="file" id="file" accept=".png,.jpg,.jpeg" hidden>
+</div>

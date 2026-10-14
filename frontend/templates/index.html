@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CONBOART — City College of Tagaytay</title>
+<script>
+(function(){
+  var t=localStorage.getItem('conboart-theme');
+  if(!t) t=(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  var p=localStorage.getItem('conboart-palette')||'heritage';
+  document.documentElement.setAttribute('data-theme', t);
+  document.documentElement.setAttribute('data-palette', p);
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,900&family=Spectral:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="bar">
+    <button class="brand" onclick="go('upload')" aria-label="CONBOART home">
+      <span class="mark" aria-hidden="true">
+        <img src="logo.png" alt="" width="38" height="38">
+      </span>
+      <span>
+        <span class="word">CONBOART</span>
+        <span class="ey">City College of Tagaytay</span>
+      </span>
+    </button>
+    <nav class="main">
+      <button class="nlink" data-nav="upload" onclick="go('upload')">Upload<span class="dot"></span></button>
+      <button class="nlink" data-nav="about" onclick="go('about')">About<span class="dot"></span></button>
+      <button class="nlink" data-nav="faqs" onclick="go('faqs')">FAQs<span class="dot"></span></button>
+    </nav>
+    <div class="theme-controls">
+      <div class="palette-picker" role="group" aria-label="Color palette">
+        <button class="swatch" data-palette="heritage" aria-label="Heritage palette (maroon &amp; gold)" aria-pressed="false"></button>
+        <button class="swatch" data-palette="harbor" aria-label="Harbor palette (navy &amp; gold)" aria-pressed="false"></button>
+        <button class="swatch" data-palette="grove" aria-label="Grove palette (green &amp; gold)" aria-pressed="false"></button>
+      </div>
+      <button class="mode-toggle" id="modeToggle" aria-label="Toggle dark mode" aria-pressed="false">
+        <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="gen-status-badge" id="genStatusBadge" style="display:none">
+  <span class="gsb-dot"></span><span id="genStatusText">Status: none</span>
+</div>
+
+<main>
+
+  <!-- ================= UPLOAD PAGE ================= -->
+  <section class="page" id="page-upload">
+    {% include "views/intro.html" %}
+    {% include "views/mode.html" %}
+    {% include "views/upload.html" %}
+    {% include "views/loading.html" %}
+    {% include "views/preview.html" %}
+    {% include "views/export.html" %}
+    {% include "views/empty.html" %}
+  </section>
+
+  <!-- ================= ABOUT PAGE ================= -->
+  <section class="page" id="page-about">
+    {% include "views/about.html" %}
+  </section>
+
+  <!-- ================= FAQ PAGE ================= -->
+  <section class="page" id="page-faqs">
+    {% include "views/faqs.html" %}
+  </section>
+
+</main>
+
+<footer class="site">
+  <div class="foot">
+    <span>CONBOART · CITY COLLEGE OF TAGAYTAY</span>
+    <span>PER-SESSION · NOTHING STORED</span>
+  </div>
+</footer>
+
+<!-- Export confirmation modal -->
+<div class="overlay" id="overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <span class="dm"></span>
+    <h3 id="mTitle">Ready to export?</h3>
+    <div class="recap">
+      <div><span class="k">Size</span><span id="mSize">Medium · 100 mm</span></div>
+      <div><span class="k">Printability</span><span id="mPrint">Ready ✓</span></div>
+    </div>
+    <p class="warnline" id="mWarn">Heads up — this model may not print cleanly. Export anyway?</p>
+    <div class="actionrow">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmExport()">Confirm export</button>
+    </div>
+  </div>
+</div>
+
+<!-- Select-area (crop) modal -->
+<div class="overlay" id="cropOverlay">
+  <div class="modal modal-crop" role="dialog" aria-modal="true" aria-labelledby="cropTitle">
+    <span class="dm"></span>
+    <h3 id="cropTitle">Select the area to generate</h3>
+    <p class="crop-hint">Drag a box around just the subject — the model only sees what's inside it, so background clutter or unwanted parts outside the box are ignored.</p>
+    <div class="crop-wrap">
+      <span class="tick tl"></span><span class="tick tr"></span>
+      <canvas id="cropCanvas"></canvas>
+      <span class="crop-wrap-label">drag to select</span>
+    </div>
+    <div class="actionrow">
+      <button class="btn btn-ghost" onclick="closeCropModal()">Cancel</button>
+      <button class="btn btn-ghost" onclick="resetCropSelection()">Reset selection</button>
+      <button class="btn btn-primary" id="cropConfirmBtn" disabled onclick="confirmCrop()">Use this area</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">done</div>
+
+<!-- Three.js r128 for the live viewer. Vendored (MIT, see vendor/LICENSE-three.txt)
+     so the app works offline and doesn't break when a CDN is blocked. -->
+<script src="vendor/three.min.js"></script>
+<script src="vendor/GLTFLoader.js"></script>
+<script src="js/state.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/upload.js"></script>
+<script src="js/crop.js"></script>
+<script src="js/viewer3d.js"></script>
+<script src="js/generate.js"></script>
+<script src="js/export.js"></script>
+<script src="js/faq.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

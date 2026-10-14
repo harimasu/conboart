@@ -1,0 +1,53 @@
+<div class="dropzone-multi-wrap" id="dropzoneMulti" style="display:none">
+  <p class="dz-hint" style="margin-top:0;margin-bottom:20px">Front is required — add back, left and right for a more accurate model.</p>
+  <div class="dropzone-multi">
+    <div class="multi-slot" data-slot="front">
+      <span class="multi-slot-label">Front <b>(required)</b></span>
+      <div class="multi-slot-box" id="slotBox-front" onclick="triggerMultiFile('front')">
+        <img class="multi-slot-thumb" id="slotThumb-front" style="display:none" alt="">
+        <span class="multi-slot-empty" id="slotEmpty-front">
+          <svg class="ms-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+          Add photo
+        </span>
+        <button class="multi-slot-clear" onclick="event.stopPropagation();clearMultiFile('front')">✕</button>
+      </div>
+    </div>
+    <div class="multi-slot" data-slot="back">
+      <span class="multi-slot-label">Back</span>
+      <div class="multi-slot-box" id="slotBox-back" onclick="triggerMultiFile('back')">
+        <img class="multi-slot-thumb" id="slotThumb-back" style="display:none" alt="">
+        <span class="multi-slot-empty" id="slotEmpty-back">
+          <svg class="ms-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+          Add photo
+        </span>
+        <button class="multi-slot-clear" onclick="event.stopPropagation();clearMultiFile('back')">✕</button>
+      </div>
+    </div>
+    <div class="multi-slot" data-slot="left">
+      <span class="multi-slot-label">Left</span>
+      <div class="multi-slot-box" id="slotBox-left" onclick="triggerMultiFile('left')">
+        <img class="multi-slot-thumb" id="slotThumb-left" style="display:none" alt="">
+        <span class="multi-slot-empty" id="slotEmpty-left">
+          <svg class="ms-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+          Add photo
+        </span>
+        <button class="multi-slot-clear" onclick="event.stopPropagation();clearMultiFile('left')">✕</button>
+      </div>
+    </div>
+    <div class="multi-slot" data-slot="right">
+      <span class="multi-slot-label">Right</span>
+      <div class="multi-slot-box" id="slotBox-right" onclick="triggerMultiFile('right')">
+        <img class="multi-slot-thumb" id="slotThumb-right" style="display:none" alt="">
+        <span class="multi-slot-empty" id="slotEmpty-right">
+          <svg class="ms-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+          Add photo
+        </span>
+        <button class="multi-slot-clear" onclick="event.stopPropagation();clearMultiFile('right')">✕</button>
+      </div>
+    </div>
+  </div>
+  <input type="file" id="fileMulti-front" accept=".png,.jpg,.jpeg" hidden>
+  <input type="file" id="fileMulti-back" accept=".png,.jpg,.jpeg" hidden>
+  <input type="file" id="fileMulti-left" accept=".png,.jpg,.jpeg" hidden>
+  <input type="file" id="fileMulti-right" accept=".png,.jpg,.jpeg" hidden>
+</div>

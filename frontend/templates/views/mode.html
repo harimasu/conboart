@@ -1,0 +1,20 @@
+<!-- View 0: choose upload mode -->
+<div class="view" id="v-mode">
+  <div class="hero" style="padding-bottom:0">
+    <span class="eyebrow">Step 01</span>
+    <h2 class="mode-heading">How would you like to start?</h2>
+  </div>
+
+  <div class="mode-choice">
+    <div class="mode-option">
+      <button class="btn btn-primary mode-btn" onclick="chooseUploadMode('single')">Single image</button>
+      <p class="mode-desc">Fastest — one clear photo of your subject.</p>
+    </div>
+    <div class="mode-option">
+      <button class="btn btn-primary mode-btn" onclick="chooseUploadMode('multi')">Multiple images</button>
+      <p class="mode-desc">More accurate — 2-4 angles: front, back, left, right.</p>
+    </div>
+  </div>
+
+  <div class="steps" data-auto></div>
+</div>

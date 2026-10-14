@@ -1,0 +1,50 @@
+<div style="text-align:center;margin-bottom:10px">
+  <span class="eyebrow">Help</span>
+  <h1 class="display" style="font-size:clamp(30px,5vw,50px)">Questions &amp; formats</h1>
+</div>
+<div class="faq" id="faqList">
+  <div class="qa">
+    <button onclick="toggleQA(this)">What file format should I choose?<span class="plus">+</span></button>
+    <div class="ans"><div class="ans-in">
+      <p>For <strong>3D printing</strong>, choose <code>STL</code> — the universal printer format. For <strong>SketchUp</strong>, choose <code>DAE</code>. For general use with color, <code>GLB</code> is a solid all-rounder. CAD formats are available too, with a caveat noted below.</p>
+    </div></div>
+  </div>
+  <div class="qa">
+    <button onclick="toggleQA(this)">How do I open the file in SketchUp?<span class="plus">+</span></button>
+    <div class="ans"><div class="ans-in">
+      <p>CONBOART can't write SketchUp's own <code>.skp</code> file directly, so you export a format SketchUp imports, then save it as <code>.skp</code> yourself:</p>
+      <p>Export as <strong>DAE</strong> (recommended — it keeps materials) or <strong>GLB</strong>. In SketchUp Pro or Studio, choose <strong>File → Import</strong>, then <strong>File → Save As → .skp</strong>.</p>
+      <p>Importing needs SketchUp Pro or Studio — the free web version won't import these. Avoid OBJ for SketchUp; it needs an extra plugin.</p>
+    </div></div>
+  </div>
+  <div class="qa">
+    <button onclick="toggleQA(this)">Can I get a CAD file?<span class="plus">+</span></button>
+    <div class="ans"><div class="ans-in">
+      <p>Yes, with one honest caveat. A model made from a photo is a triangle mesh, not parametric CAD. Exporting <code>STEP</code> or <code>IGES</code> — or importing an STL into Fusion or FreeCAD — brings it in as a dense faceted solid: usable for reference and basic edits, but not clean, editable CAD geometry. That limit comes from starting with a mesh.</p>
+    </div></div>
+  </div>
+  <div class="qa">
+    <button onclick="toggleQA(this)">What does the printability check mean?<span class="plus">+</span></button>
+    <div class="ans"><div class="ans-in">
+      <p>It's a quick read on whether a model is likely to print cleanly. It checks that the mesh is watertight, has consistent surface normals, forms a single connected body, and has a valid volume. A warning doesn't always mean it won't print — just that it may need attention or supports.</p>
+    </div></div>
+  </div>
+  <div class="qa">
+    <button onclick="toggleQA(this)">What images work best?<span class="plus">+</span></button>
+    <div class="ans"><div class="ans-in">
+      <p>One clear subject, a plain background, and even lighting. Front-facing objects with visible detail convert best. Busy backgrounds or multiple subjects tend to confuse the reconstruction.</p>
+    </div></div>
+  </div>
+  <div class="qa">
+    <button onclick="toggleQA(this)">Are my models stored?<span class="plus">+</span></button>
+    <div class="ans"><div class="ans-in">
+      <p>No. CONBOART is per-session only — no gallery, no account. Your image and model exist just long enough to preview and download, then they're discarded.</p>
+    </div></div>
+  </div>
+  <div class="qa">
+    <button onclick="toggleQA(this)">Is it free?<span class="plus">+</span></button>
+    <div class="ans"><div class="ans-in">
+      <p>Generation runs on fal.ai (Hunyuan3D), which is pay-as-you-go — usage limits depend on available credits. [Add your current limits here once you've picked a plan.]</p>
+    </div></div>
+  </div>
+</div>

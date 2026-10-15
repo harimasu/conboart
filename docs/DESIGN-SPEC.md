@@ -16,11 +16,11 @@ The app is **per-session only** — there is no gallery and models are not store
 
 Rescale the generated model to preset physical sizes so it's ready to print without manual resizing. Meshy output has no meaningful real-world units, so each preset maps to a target bounding-box dimension.
 
-| Preset | Target longest dimension | Typical use |
-|--------|--------------------------|-------------|
-| Small (S) | ~50 mm | Keychains, minis, desk trinkets |
-| Medium (M) | ~100 mm | Figurines, standard display pieces |
-| Large (L) | ~150 mm | Statement pieces (check against printer bed size) |
+| Preset | Target longest dimension | Reference object |
+|--------|--------------------------|-------------------|
+| Small (S) | ~45 mm | Standard keychain fob |
+| Medium (M) | ~70 mm | Midpoint — small figurine, desk trinket |
+| Large (L) | ~90 mm | Mini soda can |
 
 **Implementation:** Generation happens at the model's **native size**. The S/M/L choice is applied as a **live uniform transform in the Three.js viewer** (the preview just scales) — no regeneration, instant feedback. The chosen scale is only **baked into the geometry at export** (Trimesh: compute `mesh.extents`, find the longest axis, apply a uniform factor so it matches the preset). Uniform scaling preserves proportions, and because it's uniform it does **not** change watertightness/manifold status — so the printability result stays valid without a re-check (see [Printability Check](#3-printability-check)). Exact target values are configurable — treat the ones above as defaults.
 

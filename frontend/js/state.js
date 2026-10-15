@@ -4,7 +4,7 @@
 // baked at export, so the client converts for display. Null until a real model
 // arrives; nothing here is a stand-in number.
 const state={
-  mode:'single', file:null, files:{}, size:'M', mm:100, verdict:null, hasModel:false, jobActive:false,
+  mode:'single', file:null, files:{}, size:'M', mm:70, verdict:null, hasModel:false, jobActive:false,
   jobId:null, nativeDims:null, nativeVolume:null, triangles:null
 };
 

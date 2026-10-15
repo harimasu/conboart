@@ -20,10 +20,10 @@ function go(p){
 let curView='intro';
 const views=['intro','mode','drop','loading','viewer','export','empty'];
 const STEPS=[
-  {view:'mode', n:'01', title:'Choose mode', desc:'Single photo, or several angles for accuracy.'},
+  {view:'mode', n:'01', title:'Choose mode', desc:'Single image = efficiency<br>Multiple image = accuracy.'},
   {view:'drop', n:'02', title:'Upload', desc:'Drop in a clear photo of your subject.'},
-  {view:'viewer', n:'03', title:'Review &amp; size', desc:'Inspect the model, set S / M / L, check printability.'},
-  {view:'export', n:'04', title:'Export', desc:'Download for printing or import into SketchUp.'},
+  {view:'viewer', n:'03', title:'Review &amp; size', desc:'Inspect, Resize, Clean-up.'},
+  {view:'export', n:'04', title:'Export', desc:'Download for printing or 3D object.'},
 ];
 function updateStepsBars(){
   const html=STEPS.map(s=>'<div class="step'+(s.view===curView?' current':'')+'"><div class="n">'+s.n+'</div><h3>'+s.title+'</h3><p>'+s.desc+'</p></div>').join('');

@@ -1,8 +1,20 @@
 /* ---------------- Three.js viewer ---------------- */
 let renderer,scene,camera,mesh,viewerReady=false,modelBuffer=null;
+let previewCenterXZ=null,previewMinY=null,previewMaxDim=null;
+// Viewer framing reference: the preview is always fetched baked at this one
+// preset (mm + letter), then rescaled live client-side per S/M/L pick — no
+// refetch on toggle. Must match the highest data-mm in #scale
+// (frontend/templates/views/preview.html) and SCALE_PRESETS_MM in
+// backend/config.py.
+const VIEWER_REFERENCE_SIZE='L';
+const VIEWER_REFERENCE_MM=90;
+// Standard framing: fixed camera distance + floor height, same for every
+// model and every S/M/L pick, so size changes are the only thing that moves.
+const STANDARD_DIST=5.4;
+const FLOOR_Y=-0.95;
 
 async function fetchModelBlob(jobId){
-  const r=await fetch(`/api/convert/${jobId}?format=glb&scale=${state.size}`);
+  const r=await fetch(`/api/convert/${jobId}?format=glb&scale=${VIEWER_REFERENCE_SIZE}`);
   if(!r.ok) throw new Error(await apiErrorMessage(r));
   return await r.arrayBuffer();
 }
@@ -28,7 +40,7 @@ function initViewer(){
   const w=stage.clientWidth,h=stage.clientHeight;
   scene=new THREE.Scene();
   camera=new THREE.PerspectiveCamera(38,w/h,0.1,100);
-  camera.position.set(0,0.4,5.4);
+  camera.position.set(0,0.4,STANDARD_DIST);
   renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
   renderer.setSize(w,h);
@@ -37,6 +49,7 @@ function initViewer(){
   const key=new THREE.DirectionalLight(0xfff2dc,1.15); key.position.set(3,4,5); scene.add(key);
   const rim=new THREE.DirectionalLight(0xC59230,.5); rim.position.set(-4,2,-3); scene.add(rim);
   scene.add(new THREE.AmbientLight(0x6d4a3a,.55));
+  addFloorGrid();
 
   if(modelBuffer){ loadMeshFromBuffer(modelBuffer); } else { addPlaceholderMesh(); }
   renderer.render(scene,camera); // paint now; no-op if modelBuffer's parse hasn't resolved yet
@@ -46,10 +59,18 @@ function initViewer(){
   animate();
   window.addEventListener('resize',onResize);
 }
+function addFloorGrid(){
+  const grid=new THREE.GridHelper(4,16,0xC59230,0xd9cdb4);
+  grid.position.y=FLOOR_Y;
+  grid.material.transparent=true;
+  grid.material.opacity=0.35;
+  scene.add(grid);
+}
 function addPlaceholderMesh(){
   const geo=new THREE.TorusKnotGeometry(1.05,0.36,180,32,2,3);
   const mat=new THREE.MeshStandardMaterial({color:0xd9cdb4,roughness:.62,metalness:.12,flatShading:false});
   mesh=new THREE.Mesh(geo,mat);
+  mesh.position.y=FLOOR_Y+1.41; // rests the knot's outer radius on the floor grid
   scene.add(mesh);
 }
 function loadMeshFromBuffer(buffer){
@@ -60,13 +81,13 @@ function loadMeshFromBuffer(buffer){
     const box=new THREE.Box3().setFromObject(obj);
     const size=new THREE.Vector3(); box.getSize(size);
     const center=new THREE.Vector3(); box.getCenter(center);
-    const maxDim=Math.max(size.x,size.y,size.z)||1;
-    const scaleFactor=1.9/maxDim;
-    obj.scale.setScalar(scaleFactor);
-    // scale is applied before translation, so the recentering offset needs scaling too
-    obj.position.copy(center).multiplyScalar(-scaleFactor);
+    previewCenterXZ={x:center.x,z:center.z};
+    previewMinY=box.min.y;
+    previewMaxDim=Math.max(size.x,size.y,size.z)||1;
     scene.add(obj);
     mesh=obj;
+    applyPreviewScale();
+    resetOrbitStandard();
     renderer.render(scene,camera); // paint now, don't wait on the next animate() tick
   },(err)=>{
     console.error(err);
@@ -74,7 +95,30 @@ function loadMeshFromBuffer(buffer){
   });
 }
 
-let autoRot=true,rotX=0.35,rotY=0,dragging=false,lx=0,ly=0,dist=5.4;
+// Live S/M/L rescale of the already-loaded mesh — no refetch, no regeneration.
+// Mesh units are mm, baked at VIEWER_REFERENCE_SIZE when fetched; this maps
+// that fixed baked size to whatever state.mm is currently selected, and
+// rests the model's base on the floor grid so height differences are
+// anchored to the same ground line instead of being centered on top of
+// each other.
+function applyPreviewScale(){
+  if(!mesh||!previewCenterXZ||previewMinY===null||!previewMaxDim) return;
+  const scaleFactor=(1.9/VIEWER_REFERENCE_MM)*(state.mm/previewMaxDim);
+  mesh.scale.setScalar(scaleFactor);
+  mesh.position.set(
+    -previewCenterXZ.x*scaleFactor,
+    FLOOR_Y-previewMinY*scaleFactor,
+    -previewCenterXZ.z*scaleFactor
+  );
+  if(viewerReady) renderer.render(scene,camera);
+}
+
+let autoRot=true,rotX=0.35,rotY=0,dragging=false,lx=0,ly=0,dist=STANDARD_DIST;
+// Back to the standard camera distance/angle for a newly loaded model —
+// leftover zoom/rotation from a previous model never carries over.
+function resetOrbitStandard(){
+  dist=STANDARD_DIST; rotX=0.35; rotY=0; autoRot=true;
+}
 function addOrbit(stage){
   stage.addEventListener('pointerdown',e=>{dragging=true;autoRot=false;lx=e.clientX;ly=e.clientY;stage.setPointerCapture(e.pointerId);});
   stage.addEventListener('pointermove',e=>{

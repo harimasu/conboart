@@ -53,6 +53,17 @@ if ALLOWED_ORIGINS:
         allow_headers=["Content-Type"],
     )
 
+
+# Frontend static files (js/, style.css, templates) carry no Cache-Control,
+# so without this the browser can keep serving an edited file from its HTTP
+# cache instead of revalidating. Every response here is marked no-store.
+@app.middleware("http")
+async def no_store_frontend(request: Request, call_next):
+    response = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
 # --- In-memory session store (swap for Redis if you scale out) --------------
 # job_id -> {"dir": Path, "created": ts}
 SESSIONS: dict[str, dict] = {}

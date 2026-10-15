@@ -171,10 +171,12 @@ function updateInfoPanel(){
 /* ---------------- Scale ---------------- */
 document.querySelectorAll('#scale button').forEach(b=>{
   b.addEventListener('click',()=>{
+    if(b.classList.contains('on')) return;
     document.querySelectorAll('#scale button').forEach(x=>x.classList.remove('on'));
     b.classList.add('on');
     state.size=b.dataset.size; state.mm=+b.dataset.mm;
     updateInfoPanel();
+    applyPreviewScale(); // live viewer rescale; the backend only bakes scale at export
   });
 });
 

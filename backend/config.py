@@ -32,7 +32,8 @@ RATE_LIMIT_WINDOW_S = int(os.getenv("RATE_LIMIT_WINDOW_S", "600"))
 
 # --- Auto-scale presets (longest bounding-box dimension, in millimetres) ----
 # Tune these to your target printer's bed size.
-SCALE_PRESETS_MM = {"S": 50.0, "M": 100.0, "L": 150.0}
+# Reference objects: S = standard keychain fob, M = midpoint, L = mini soda can.
+SCALE_PRESETS_MM = {"S": 45.0, "M": 70.0, "L": 90.0}
 
 # --- Formats ----------------------------------------------------------------
 # Tier 1 mesh formats handled natively by Trimesh.

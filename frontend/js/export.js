@@ -54,10 +54,12 @@ function resetForNewUpload(){
   // clear file + model state and return to the upload step (same mode as before)
   clearFile();
   MULTI_SLOTS.forEach(clearMultiFile);
-  state.hasModel=false; state.jobActive=false; state.size='M'; state.mm=100;
+  state.hasModel=false; state.jobActive=false; state.size='M'; state.mm=70;
   state.jobId=null; state.nativeDims=null; state.nativeVolume=null;
   state.triangles=null; state.verdict=null;
   modelBuffer=null;
+  previewCenterXZ=null; previewMinY=null; previewMaxDim=null;
+  resetOrbitStandard();
   updateInfoPanel();
   if(mesh){ scene.remove(mesh); mesh=null; }
   document.querySelectorAll('#scale button').forEach(x=>x.classList.toggle('on', x.dataset.size==='M'));

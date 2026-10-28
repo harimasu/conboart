@@ -345,11 +345,13 @@ h1.display{
 .export-grid{display:grid;grid-template-columns:1fr 340px;gap:26px;align-items:start}
 .fld{margin-bottom:20px}
 .fld label{display:block;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-select.dd{
+select.dd,input.dd{
   width:100%;font-family:"Spectral",serif;font-size:15px;color:var(--ink);
   background:var(--surface-strong);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;
 }
-select.dd:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select.dd:focus-visible,input.dd:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input.dd{cursor:text}
+input.dd::placeholder{color:var(--muted)}
 /* Options — opaque colors (native popup) */
 select.dd option{background:var(--bg-2);color:var(--ink)}
 select.dd optgroup{background:var(--bg-2);color:var(--muted)}

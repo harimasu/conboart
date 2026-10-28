@@ -5,6 +5,8 @@ import asyncio
 import base64
 import logging
 import time
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import httpx
 
@@ -95,14 +97,33 @@ async def download_model(response_url: str) -> bytes:
         if r.status_code >= 400:
             raise _fail("result", r)
         result = r.json()
-    try:
-        glb_url = result["model_urls"]["glb"]["url"]
-    except (KeyError, TypeError) as e:
-        log.error("completed task carried no model_urls.glb.url: %s", result)
-        raise FalError("the finished task did not include a GLB url") from e
+    urls = result.get("model_urls") or {}
 
-    async with httpx.AsyncClient(timeout=120) as client:
-        r = await client.get(glb_url)
-        if r.status_code >= 400:
-            raise _fail("download", r)
-        return r.content
+    if (urls.get("glb") or {}).get("url"):
+        async with httpx.AsyncClient(timeout=120) as client:
+            r = await client.get(urls["glb"]["url"])
+            if r.status_code >= 400:
+                raise _fail("download", r)
+            return r.content
+
+    if (urls.get("obj") or {}).get("url"):
+        return await _obj_to_glb(urls)
+
+    log.error("completed task carried no glb or obj url: %s", result)
+    raise FalError("the finished task did not include a model url")
+
+
+async def _obj_to_glb(urls: dict) -> bytes:
+    """Download OBJ + MTL + texture side by side, then convert to GLB."""
+    import trimesh
+
+    files = [urls[k] for k in ("obj", "mtl", "texture") if (urls.get(k) or {}).get("url")]
+    with TemporaryDirectory() as tmp:
+        async with httpx.AsyncClient(timeout=120) as client:
+            for f in files:
+                r = await client.get(f["url"])
+                if r.status_code >= 400:
+                    raise _fail("download", r)
+                (Path(tmp) / f["file_name"]).write_bytes(r.content)
+        mesh = trimesh.load(Path(tmp) / urls["obj"]["file_name"], force="mesh")
+        return mesh.export(file_type="glb")

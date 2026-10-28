@@ -226,7 +226,7 @@ def convert_endpoint(job_id: str, format: str = "stl", scale: str = "M"):
     mode = "wb" if isinstance(data, (bytes, bytearray)) else "w"
     with open(out, mode) as f:
         f.write(data)
-    return FileResponse(out, filename=f"conboart-model.{ext}")
+    return FileResponse(out, filename=f"conboart_model.{ext}")
 
 
 # --- Frontend ----------------------------------------------------------------

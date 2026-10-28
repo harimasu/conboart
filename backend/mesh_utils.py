@@ -26,6 +26,20 @@ def _bytes_io(data: bytes):
     return io.BytesIO(data)
 
 
+def geometry(mesh):
+    """Geometry-only copy, vertices welded by position (UV seams joined)."""
+    import trimesh
+
+    return trimesh.Trimesh(vertices=mesh.vertices.copy(), faces=mesh.faces.copy())
+
+
+def _body_count(mesh) -> int:
+    import numpy as np
+    import trimesh
+
+    return len(trimesh.graph.connected_components(mesh.face_adjacency, nodes=np.arange(len(mesh.faces))))
+
+
 _PRINT_GRAY = (0.55, 0.55, 0.55, 1.0)  # RGBA 0-1
 
 
@@ -35,6 +49,9 @@ def ensure_visible_material(mesh) -> None:
 
     material = getattr(mesh.visual, "material", None)
     if material is not None and getattr(material, "baseColorTexture", None) is not None:
+        # glTF default metallic is 1.0 (renders dark)
+        if getattr(material, "metallicFactor", None) is None:
+            material.metallicFactor = 0.0
         return
     mesh.visual = trimesh.visual.TextureVisuals(
         material=trimesh.visual.material.PBRMaterial(
@@ -153,6 +170,37 @@ def _voxel_remesh(mesh, pitch_frac: float = _VOXEL_REMESH_PITCH_FRAC):
     return remeshed
 
 
+def _light_repair(mesh):
+    """Drop debris and fill small holes on the textured mesh itself. None if not enough."""
+    import numpy as np
+    import trimesh
+
+    g = geometry(mesh)
+    if len(g.faces) != len(mesh.faces) or not g.is_winding_consistent:
+        return None
+
+    # welded vertex -> one textured vertex at the same position
+    rep = np.empty(len(g.vertices), dtype=np.int64)
+    rep[g.faces.ravel()] = mesh.faces.ravel()
+
+    face_groups = trimesh.graph.connected_components(g.face_adjacency, nodes=np.arange(len(g.faces)))
+    max_faces = max(len(f) for f in face_groups)
+    keep = np.sort(np.concatenate([f for f in face_groups if len(f) >= max(8, max_faces * 0.01)]))
+    g.update_faces(keep)
+
+    n = len(g.faces)
+    _fill_small_holes(g)
+    if not (g.is_watertight and g.is_volume):
+        return None
+
+    faces = np.vstack([mesh.faces[keep], rep[g.faces[n:]]])
+    uv = getattr(mesh.visual, "uv", None)
+    visual = trimesh.visual.TextureVisuals(uv=uv, material=mesh.visual.material) if uv is not None else None
+    out = trimesh.Trimesh(vertices=mesh.vertices.copy(), faces=faces, visual=visual, process=False)
+    out.remove_unreferenced_vertices()
+    return out if printability(out)["verdict"] == "ok" else None
+
+
 def cleanup(mesh, *, weld: bool = False, guarantee: bool = False):
     """Repair common AI-mesh issues: debris specks, small gaps, missing color.
 
@@ -162,7 +210,21 @@ def cleanup(mesh, *, weld: bool = False, guarantee: bool = False):
     """
     import trimesh
 
-    mesh.merge_vertices()
+    # already printable: keep original (texture intact)
+    if printability(mesh)["verdict"] == "ok" and _body_count(geometry(mesh)) <= 1:
+        ensure_visible_material(mesh)
+        return mesh
+
+    # light repair: debris + small holes, texture intact
+    try:
+        repaired = _light_repair(mesh)
+    except Exception:
+        repaired = None
+    if repaired is not None:
+        ensure_visible_material(repaired)
+        return repaired
+
+    mesh = geometry(mesh)
     mesh.update_faces(mesh.unique_faces())
     mesh.update_faces(mesh.nondegenerate_faces())
     mesh.remove_unreferenced_vertices()
@@ -203,11 +265,11 @@ def printability(mesh) -> dict:
 
     single_body is informational only, not required for verdict "ok".
     """
-    watertight = bool(mesh.is_watertight)
-    winding = bool(mesh.is_winding_consistent)
-    bodies = mesh.split(only_watertight=False)
-    single_body = len(bodies) <= 1
-    positive_volume = bool(mesh.is_volume) and bool(mesh.volume > 0)
+    g = geometry(mesh)
+    watertight = bool(g.is_watertight)
+    winding = bool(g.is_winding_consistent)
+    single_body = _body_count(g) <= 1
+    positive_volume = bool(g.is_volume) and bool(g.volume > 0)
 
     checks = {
         "watertight": watertight,
@@ -238,8 +300,9 @@ def bake_scale(mesh, size: str):
 
 def model_info(mesh) -> dict:
     """Measurements in native units (not mm) — client scales for display."""
+    g = geometry(mesh)
     return {
         "dimensions": [float(x) for x in mesh.extents],
         "triangles": int(len(mesh.faces)),
-        "volume": float(mesh.volume) if mesh.is_volume else None,
+        "volume": float(g.volume) if g.is_volume else None,
     }

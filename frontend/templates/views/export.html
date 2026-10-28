@@ -4,6 +4,10 @@
   <div class="export-grid">
     <div class="card">
       <div class="fld">
+        <label for="fname">File name</label>
+        <input class="dd" id="fname" type="text" placeholder="conboart_model" maxlength="80" autocomplete="off" spellcheck="false" oninput="fmtNote()">
+      </div>
+      <div class="fld">
         <label for="fmt">Choose a format</label>
         <select class="dd" id="fmt" onchange="fmtNote()">
           <optgroup label="Print &amp; mesh">
@@ -31,7 +35,7 @@
           <li><span class="k">Size</span><span class="v" id="sSize">Medium · 70 mm</span></li>
           <li><span class="k">Dimensions</span><span class="v" id="sDim">—</span></li>
           <li><span class="k">Printability</span><span class="v" id="sPrint">—</span></li>
-          <li><span class="k">File</span><span class="v" id="sFile">model.stl</span></li>
+          <li><span class="k">File</span><span class="v" id="sFile">conboart_model.stl</span></li>
         </ul>
       </div>
       <div id="dlStatus" class="dl-msg" style="display:none"></div>

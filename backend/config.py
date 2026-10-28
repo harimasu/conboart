@@ -1,8 +1,9 @@
 """Configuration and limits for CONBOART. Read from environment (see .env.example)."""
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 # --- Generator selection: mock / fal — falls back to mock if unrecognized
 GENERATOR = os.getenv("GENERATOR", "mock").strip().lower()
